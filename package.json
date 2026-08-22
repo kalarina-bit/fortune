@@ -1,9 +1,17 @@
 {
-  "name": "college-chess-party",
-  "version": "1.0.0",
+  "name": "chess-party",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
+  "description": "Chess Party — AI and multiplayer chess",
   "scripts": {
     "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
   }
 }
+
