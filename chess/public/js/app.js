@@ -98,10 +98,6 @@ const elements = {
 
     partySummary: document.querySelector("#partySummary"),
     copyInviteButton: document.querySelector("#copyInviteButton"),
-    
-    // ДОБАВЛЕНЫ КНОПКИ "НОВАЯ ИГРА"
-    newGameToolbarButton: document.querySelector("#newGameToolbarButton"),
-    newPartyGameButton: document.querySelector("#newPartyGameButton"),
 
     flipBoardButton: document.querySelector("#flipBoardButton"),
 
@@ -524,22 +520,22 @@ function formatStatus() {
     const status = currentStatus();
 
     if (status.phase === "checkmate") {
-        return "Мат!";
+        return "Checkmate";
     }
 
     if (status.phase === "draw") {
-        return "Ничья";
+        return "Draw";
     }
 
     if (status.check) {
         return appState.engine.state.turn === "w"
-            ? "Шах белым"
-            : "Шах черным";
+            ? "White is in check"
+            : "Black is in check";
     }
 
     return appState.engine.state.turn === "w"
-        ? "Ход белых"
-        : "Ход черных";
+        ? "White to move"
+        : "Black to move";
 }
 
 
@@ -550,7 +546,7 @@ function getGameOverMessage() {
     if (!snapshot) {
         return (
             appState.gameOverMessage ||
-            "Игра окончена."
+            "Game over."
         );
     }
 
@@ -563,21 +559,21 @@ function getGameOverMessage() {
     switch (reason) {
         case "timeout":
             return winner === "w"
-                ? "Белые выиграли по времени."
-                : "Черные выиграли по времени.";
+                ? "White wins on time."
+                : "Black wins on time.";
 
         case "checkmate":
             return winner === "w"
-                ? "Белые выиграли матом."
-                : "Черные выиграли матом.";
+                ? "White wins by checkmate."
+                : "Black wins by checkmate.";
 
         case "draw":
-            return "Ничья.";
+            return "Draw.";
 
         default:
             return (
                 appState.gameOverMessage ||
-                "Игра окончена."
+                "Game over."
             );
     }
 }
@@ -590,17 +586,17 @@ function getGameOverMessage() {
 function renderRoster() {
     if (appState.mode === "ai") {
         const human =
-            appState.playerName || "Вы";
+            appState.playerName || "You";
 
         const whiteName =
             appState.playerColor === "w"
                 ? human
-                : `Компьютер (${appState.aiLevel})`;
+                : `Computer (${appState.aiLevel})`;
 
         const blackName =
             appState.playerColor === "b"
                 ? human
-                : `Компьютер (${appState.aiLevel})`;
+                : `Computer (${appState.aiLevel})`;
 
         if (elements.whitePlayerLabel) {
             elements.whitePlayerLabel.textContent =
@@ -624,7 +620,7 @@ function renderRoster() {
 
         if (elements.spectatorList) {
             elements.spectatorList.innerHTML =
-                "<li class='empty-state'>В режиме ИИ зрителей нет</li>";
+                "<li>None in AI mode</li>";
         }
 
         if (elements.spectatorCount) {
@@ -648,7 +644,7 @@ function renderRoster() {
                     ? ""
                     : " · offline"
             }`
-            : "Свободно";
+            : "Open seat";
 
     const blackName =
         black
@@ -657,7 +653,7 @@ function renderRoster() {
                     ? ""
                     : " · offline"
             }`
-            : "Свободно";
+            : "Open seat";
 
     elements.whitePlayerLabel &&
         (elements.whitePlayerLabel.textContent =
@@ -689,7 +685,7 @@ function renderRoster() {
 
     if (!spectators.length) {
         elements.spectatorList.innerHTML =
-            "<li class='empty-state'>Пока никого нет</li>";
+            "<li>None yet</li>";
 
         return;
     }
@@ -721,7 +717,7 @@ function renderPartySummary() {
 
     if (!appState.party) {
         elements.partySummary.textContent =
-            "Создайте комнату, чтобы играть белыми. Следующий игрок присоединится за черных.";
+            "Create a room to become White. The next player joins as Black. Up to 20 spectators can watch live.";
 
         return;
     }
@@ -731,18 +727,18 @@ function renderPartySummary() {
 
     const roleText =
         role === "white"
-            ? "Играете за Белых"
+            ? "playing as White"
             : role === "black"
-                ? "Играете за Черных"
-                : "Зритель";
+                ? "playing as Black"
+                : "watching as a spectator";
 
     const timeLabel =
         appState.partySnapshot
             ?.timeControl?.label ||
-        "Без лимита";
+        "Без часов";
 
     elements.partySummary.textContent =
-        `Комната ${appState.party.code} · ${roleText}. ${timeLabel}.`;
+        `Party ${appState.party.code} · ${roleText}. ${timeLabel}.`;
 }
 
 
@@ -774,7 +770,7 @@ function renderClocks() {
                 elements.aiTimeControl
                     ?.selectedOptions?.[0]
                     ?.textContent ||
-                "Без лимита",
+                "Без часов",
         };
     }
 
@@ -788,7 +784,7 @@ function renderClocks() {
             elements.whiteClock.textContent = "∞";
             elements.whiteClock.classList.remove(
                 "active",
-                "danger"
+                "low"
             );
         }
 
@@ -796,7 +792,7 @@ function renderClocks() {
             elements.blackClock.textContent = "∞";
             elements.blackClock.classList.remove(
                 "active",
-                "danger"
+                "low"
             );
         }
 
@@ -820,8 +816,8 @@ function renderClocks() {
         );
 
         elements.whiteClock.classList.toggle(
-            "danger",
-            white <= 10 && white > 0
+            "low",
+            white <= 10
         );
     }
 
@@ -836,8 +832,8 @@ function renderClocks() {
         );
 
         elements.blackClock.classList.toggle(
-            "danger",
-            black <= 10 && black > 0
+            "low",
+            black <= 10
         );
     }
 }
@@ -852,37 +848,31 @@ function renderConnectionBadge() {
         return;
     }
 
-    // Сбросим классы перед установкой
-    elements.connectionBadge.className = "status-chip"; 
-
     if (appState.mode === "ai") {
-        elements.connectionBadge.classList.add("connection-solo");
         elements.connectionBadge.textContent =
             appState.isAiThinking
-                ? "Компьютер думает..."
-                : `Соло (${appState.aiLevel})`;
+                ? "Computer thinking"
+                : `AI: ${appState.aiLevel}`;
 
         return;
     }
 
     if (!appState.party) {
-        elements.connectionBadge.classList.add("connection-solo");
         elements.connectionBadge.textContent =
-            "Вне комнаты";
+            "Party idle";
 
         return;
     }
 
-    elements.connectionBadge.classList.add("connection-party");
     const role =
         appState.party.role === "white"
-            ? "Белые"
+            ? "White"
             : appState.party.role === "black"
-                ? "Черные"
-                : "Зритель";
+                ? "Black"
+                : "Spectator";
 
     elements.connectionBadge.textContent =
-        `Комната ${appState.party.code} · ${role}`;
+        `Party ${appState.party.code} · ${role}`;
 }
 
 
@@ -901,13 +891,7 @@ function render() {
 
     if (elements.turnBadge) {
         elements.turnBadge.textContent =
-            appState.engine.state.turn === "w" ? "Ход белых" : "Ход черных";
-            
-        // Меняем класс цвета бейджа
-        elements.turnBadge.className = 
-            appState.engine.state.turn === "w" 
-                ? "status-chip turn-white" 
-                : "status-chip turn-black";
+            status;
     }
 
     if (elements.statusMessage) {
@@ -921,12 +905,6 @@ function render() {
     );
 
     elements.leavePartyButton?.classList.toggle(
-        "hidden",
-        !appState.party
-    );
-    
-    // Показываем кнопку "Новая игра" в мультиплеере только если мы в комнате (и опционально, если игра окончена)
-    elements.newPartyGameButton?.classList.toggle(
         "hidden",
         !appState.party
     );
@@ -1035,7 +1013,7 @@ async function submitMove(move) {
 
             showToast(
                 response.error ||
-                    "Ход отклонен.",
+                    "Move rejected.",
                 "error"
             );
 
@@ -1061,7 +1039,7 @@ async function submitMove(move) {
     if (!result.ok) {
         showToast(
             result.error ||
-                "Недопустимый ход.",
+                "Illegal move.",
             "error"
         );
 
@@ -1326,8 +1304,8 @@ function updateAiClock() {
 
         appState.gameOverMessage =
             color === "w"
-                ? "Черные выиграли по времени."
-                : "Белые выиграли по времени.";
+                ? "Black wins on time."
+                : "White wins on time.";
 
         stopAiClock();
 
@@ -1399,32 +1377,6 @@ function resetLocalGame() {
 
     startAiClock();
     scheduleAiTurn();
-    render();
-}
-
-
-/* =========================================================
-   NEW GAME HANDLER (Добавлено)
-========================================================= */
-
-async function startNewGame() {
-    if (appState.mode === "ai") {
-        resetLocalGame();
-        showToast("Новая игра с ИИ начата!", "success");
-    } else if (appState.mode === "party" && appState.party) {
-        // Если вы играете с другом, мы отправляем запрос на сервер, 
-        // чтобы он сбросил состояние комнаты. (Предполагается, что такой API существует)
-        const response = await postJson("/api/party/restart", {
-            partyCode: appState.party.code,
-            clientId: appState.party.clientId
-        });
-
-        if (!response.ok) {
-            showToast(response.error || "Не удалось перезапустить игру на сервере.", "error");
-            return;
-        }
-        showToast("Новая игра в комнате началась!", "success");
-    }
 }
 
 
@@ -1629,7 +1581,7 @@ function connectPartyStream() {
             elements.connectionBadge
         ) {
             elements.connectionBadge.textContent =
-                `Комната ${code} · переподключение...`;
+                `Party ${code} · reconnecting`;
         }
     };
 
@@ -1672,7 +1624,7 @@ async function createParty() {
     if (!response.ok) {
         showToast(
             response.error ||
-                "Не удалось создать комнату.",
+                "Unable to create party.",
             "error"
         );
 
@@ -1692,7 +1644,7 @@ async function createParty() {
     connectPartyStream();
 
     showToast(
-        `Комната ${response.party.code} создана.`,
+        `Party ${response.party.code} created.`,
         "success"
     );
 }
@@ -1710,7 +1662,7 @@ async function joinParty(code) {
 
     if (!normalizedCode) {
         showToast(
-            "Сначала введите код комнаты.",
+            "Enter a party code first.",
             "error"
         );
 
@@ -1722,7 +1674,7 @@ async function joinParty(code) {
         normalizedCode
     ) {
         showToast(
-            `Вы уже находитесь в комнате ${normalizedCode}.`
+            `You are already in party ${normalizedCode}.`
         );
 
         return;
@@ -1754,7 +1706,7 @@ async function joinParty(code) {
     if (!response.ok) {
         showToast(
             response.error ||
-                "Не удалось войти в комнату.",
+                "Unable to join party.",
             "error"
         );
 
@@ -1774,7 +1726,7 @@ async function joinParty(code) {
     connectPartyStream();
 
     showToast(
-        `Вы присоединились к комнате ${response.party.code}.`,
+        `Joined party ${response.party.code}.`,
         "success"
     );
 }
@@ -1822,7 +1774,7 @@ async function leaveParty(
 
     if (!silent) {
         showToast(
-            "Вы покинули комнату."
+            "Left the party room."
         );
     }
 }
@@ -1850,12 +1802,12 @@ async function copyInviteLink() {
         );
 
         showToast(
-            "Ссылка-инвайт скопирована!",
+            "Invite link copied.",
             "success"
         );
     } catch {
         showToast(
-            `Код комнаты: ${appState.party.code}`
+            `Party code: ${appState.party.code}`
         );
     }
 }
@@ -1920,16 +1872,12 @@ function removeStoredPartyId(code) {
 ========================================================= */
 
 function bindEvents() {
-    // ПРИВЯЗКА КНОПОК НОВОЙ ИГРЫ
-    elements.newGameToolbarButton?.addEventListener("click", startNewGame);
-    elements.newPartyGameButton?.addEventListener("click", startNewGame);
-
     elements.playerNameInput?.addEventListener(
         "input",
         event => {
             appState.playerName =
                 event.target.value.trim() ||
-                "Гость";
+                "Guest";
 
             localStorage.setItem(
                 STORAGE_KEYS.name,
@@ -2012,7 +1960,7 @@ function bindEvents() {
             resetLocalGame();
 
             showToast(
-                "Новая игра с ИИ началась.",
+                "New AI game ready.",
                 "success"
             );
         }
@@ -2165,4 +2113,5 @@ async function init() {
 ========================================================= */
 
 init();
+
 
