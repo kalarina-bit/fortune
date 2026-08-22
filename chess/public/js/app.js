@@ -90,8 +90,11 @@ const elements = {
     partyTimeControl: document.querySelector("#partyClockSelect"),
 
     startAiButton: document.querySelector("#startAiButton"),
+    newGameToolbarButton: document.querySelector("#newGameToolbarButton"),
 
     createPartyButton: document.querySelector("#createPartyButton"),
+    newPartyGameButton: document.querySelector("#newPartyGameButton"),
+
     partyCodeInput: document.querySelector("#partyCodeInput"),
     joinPartyButton: document.querySelector("#joinPartyButton"),
     leavePartyButton: document.querySelector("#leavePartyButton"),
@@ -112,6 +115,11 @@ const elements = {
 
     whiteClock: document.querySelector("#whiteClock"),
     blackClock: document.querySelector("#blackClock"),
+
+    capturedByWhite: document.querySelector("#capturedByWhite"),
+    capturedByBlack: document.querySelector("#capturedByBlack"),
+
+    moveHistory: document.querySelector("#moveHistory"),
 
     promotionDialog: document.querySelector("#promotionDialog"),
     promotionOptions: document.querySelector("#promotionOptions"),
@@ -303,10 +311,9 @@ function showToast(message, type = "info") {
 
     elements.toastHost.appendChild(toast);
 
-    window.setTimeout(
-        () => toast.remove(),
-        3200
-    );
+    window.setTimeout(() => {
+        toast.remove();
+    }, 3200);
 }
 
 
@@ -384,15 +391,13 @@ function renderBoard() {
     const selectedMoves =
         getLegalMovesForSelected();
 
-    const moveTargets = new Map(
-        selectedMoves.map(move => [
-            move.to,
-            move,
-        ])
-    );
+    const moveTargets = new Map();
 
-    const orientation =
-        appState.orientation;
+    for (const move of selectedMoves) {
+        moveTargets.set(move.to, move);
+    }
+
+    const orientation = appState.orientation;
 
     const xOrder =
         orientation === "w"
@@ -426,16 +431,24 @@ function renderBoard() {
                 document.createElement("button");
 
             square.type = "button";
+
+            /*
+             * ВАЖНО:
+             * Теперь цвет клетки задаётся непосредственно
+             * через .light / .dark.
+             */
+            const isDark =
+                (x + y) % 2 === 0;
+
             square.className =
                 `square ${
-                    (x + y) % 2 === 0
-                        ? "dark"
-                        : "light"
+                    isDark ? "dark" : "light"
                 }`;
 
             square.dataset.square =
                 squareName;
 
+            /* Selected */
             if (
                 appState.selectedSquare ===
                 squareName
@@ -445,6 +458,7 @@ function renderBoard() {
                 );
             }
 
+            /* Legal move */
             const move =
                 moveTargets.get(squareName);
 
@@ -456,6 +470,7 @@ function renderBoard() {
                 );
             }
 
+            /* Last move */
             if (
                 lastMove &&
                 (
@@ -468,6 +483,7 @@ function renderBoard() {
                 );
             }
 
+            /* Check */
             if (
                 piece &&
                 piece.type === "K" &&
@@ -478,6 +494,7 @@ function renderBoard() {
                 );
             }
 
+            /* Piece */
             if (piece) {
                 const pieceNode =
                     document.createElement("span");
@@ -494,15 +511,26 @@ function renderBoard() {
                         piece.color
                     ][piece.type];
 
-                square.appendChild(pieceNode);
+                pieceNode.setAttribute(
+                    "aria-hidden",
+                    "true"
+                );
+
+                square.appendChild(
+                    pieceNode
+                );
             }
 
             square.addEventListener(
                 "click",
-                () => handleSquareClick(squareName)
+                () => handleSquareClick(
+                    squareName
+                )
             );
 
-            elements.board.appendChild(square);
+            elements.board.appendChild(
+                square
+            );
         }
     }
 }
@@ -520,22 +548,22 @@ function formatStatus() {
     const status = currentStatus();
 
     if (status.phase === "checkmate") {
-        return "Checkmate";
+        return "Мат";
     }
 
     if (status.phase === "draw") {
-        return "Draw";
+        return "Ничья";
     }
 
     if (status.check) {
         return appState.engine.state.turn === "w"
-            ? "White is in check"
-            : "Black is in check";
+            ? "Белые под шахом"
+            : "Чёрные под шахом";
     }
 
     return appState.engine.state.turn === "w"
-        ? "White to move"
-        : "Black to move";
+        ? "Ход белых"
+        : "Ход чёрных";
 }
 
 
@@ -546,7 +574,7 @@ function getGameOverMessage() {
     if (!snapshot) {
         return (
             appState.gameOverMessage ||
-            "Game over."
+            "Игра окончена."
         );
     }
 
@@ -559,21 +587,21 @@ function getGameOverMessage() {
     switch (reason) {
         case "timeout":
             return winner === "w"
-                ? "White wins on time."
-                : "Black wins on time.";
+                ? "Белые победили по времени."
+                : "Чёрные победили по времени.";
 
         case "checkmate":
             return winner === "w"
-                ? "White wins by checkmate."
-                : "Black wins by checkmate.";
+                ? "Белые победили матом."
+                : "Чёрные победили матом.";
 
         case "draw":
-            return "Draw.";
+            return "Ничья.";
 
         default:
             return (
                 appState.gameOverMessage ||
-                "Game over."
+                "Игра окончена."
             );
     }
 }
@@ -586,17 +614,17 @@ function getGameOverMessage() {
 function renderRoster() {
     if (appState.mode === "ai") {
         const human =
-            appState.playerName || "You";
+            appState.playerName || "Вы";
 
         const whiteName =
             appState.playerColor === "w"
                 ? human
-                : `Computer (${appState.aiLevel})`;
+                : `Компьютер (${appState.aiLevel})`;
 
         const blackName =
             appState.playerColor === "b"
                 ? human
-                : `Computer (${appState.aiLevel})`;
+                : `Компьютер (${appState.aiLevel})`;
 
         if (elements.whitePlayerLabel) {
             elements.whitePlayerLabel.textContent =
@@ -620,7 +648,7 @@ function renderRoster() {
 
         if (elements.spectatorList) {
             elements.spectatorList.innerHTML =
-                "<li>None in AI mode</li>";
+                "<li>В режиме AI зрителей нет</li>";
         }
 
         if (elements.spectatorCount) {
@@ -642,34 +670,38 @@ function renderRoster() {
             ? `${white.name}${
                 white.connected
                     ? ""
-                    : " · offline"
+                    : " · офлайн"
             }`
-            : "Open seat";
+            : "Свободно";
 
     const blackName =
         black
             ? `${black.name}${
                 black.connected
                     ? ""
-                    : " · offline"
+                    : " · офлайн"
             }`
-            : "Open seat";
+            : "Свободно";
 
-    elements.whitePlayerLabel &&
-        (elements.whitePlayerLabel.textContent =
-            whiteName);
+    if (elements.whitePlayerLabel) {
+        elements.whitePlayerLabel.textContent =
+            whiteName;
+    }
 
-    elements.blackPlayerLabel &&
-        (elements.blackPlayerLabel.textContent =
-            blackName);
+    if (elements.blackPlayerLabel) {
+        elements.blackPlayerLabel.textContent =
+            blackName;
+    }
 
-    elements.rosterWhite &&
-        (elements.rosterWhite.textContent =
-            whiteName);
+    if (elements.rosterWhite) {
+        elements.rosterWhite.textContent =
+            whiteName;
+    }
 
-    elements.rosterBlack &&
-        (elements.rosterBlack.textContent =
-            blackName);
+    if (elements.rosterBlack) {
+        elements.rosterBlack.textContent =
+            blackName;
+    }
 
     const spectators =
         appState.partySnapshot?.spectators || [];
@@ -685,7 +717,7 @@ function renderRoster() {
 
     if (!spectators.length) {
         elements.spectatorList.innerHTML =
-            "<li>None yet</li>";
+            "<li>Пока никого нет</li>";
 
         return;
     }
@@ -699,9 +731,145 @@ function renderRoster() {
                     )}${
                         spectator.connected
                             ? ""
-                            : " · offline"
+                            : " · офлайн"
                     }</li>`
             )
+            .join("");
+}
+
+
+/* =========================================================
+   CAPTURED PIECES
+========================================================= */
+
+function renderCaptured() {
+    if (
+        !elements.capturedByWhite &&
+        !elements.capturedByBlack
+    ) {
+        return;
+    }
+
+    /*
+     * Поддерживаем несколько возможных форматов
+     * истории движка, если они присутствуют.
+     */
+    const history =
+        appState.engine.state.moveHistory ||
+        appState.engine.state.history ||
+        [];
+
+    const whiteCaptured = [];
+    const blackCaptured = [];
+
+    for (const move of history) {
+        if (!move) {
+            continue;
+        }
+
+        const captured =
+            move.captured ||
+            move.capturedPiece ||
+            null;
+
+        if (!captured) {
+            continue;
+        }
+
+        const color =
+            captured.color ||
+            (captured.type
+                ? (move.color === "w" ? "b" : "w")
+                : null);
+
+        const type =
+            captured.type ||
+            (
+                typeof captured === "string"
+                    ? captured
+                    : null
+            );
+
+        if (!type) {
+            continue;
+        }
+
+        const glyph =
+            PIECE_GLYPHS[color]?.[type];
+
+        if (!glyph) {
+            continue;
+        }
+
+        if (move.color === "w") {
+            whiteCaptured.push(glyph);
+        } else {
+            blackCaptured.push(glyph);
+        }
+    }
+
+    if (elements.capturedByWhite) {
+        elements.capturedByWhite.textContent =
+            whiteCaptured.join(" ");
+    }
+
+    if (elements.capturedByBlack) {
+        elements.capturedByBlack.textContent =
+            blackCaptured.join(" ");
+    }
+}
+
+
+/* =========================================================
+   MOVE HISTORY
+========================================================= */
+
+function renderMoveHistory() {
+    if (!elements.moveHistory) {
+        return;
+    }
+
+    const history =
+        appState.engine.state.moveHistory ||
+        appState.engine.state.history ||
+        [];
+
+    if (!Array.isArray(history) || !history.length) {
+        elements.moveHistory.innerHTML =
+            "<li class=\"empty-state\">Ходов пока нет</li>";
+
+        return;
+    }
+
+    elements.moveHistory.innerHTML =
+        history
+            .map((move, index) => {
+                if (typeof move === "string") {
+                    return `<li>${escapeHtml(move)}</li>`;
+                }
+
+                const from =
+                    move?.from || "";
+
+                const to =
+                    move?.to || "";
+
+                const promotion =
+                    move?.promotion
+                        ? `=${String(move.promotion).toUpperCase()}`
+                        : "";
+
+                const text =
+                    from && to
+                        ? `${from} → ${to}${promotion}`
+                        : JSON.stringify(move);
+
+                return (
+                    `<li>${escapeHtml(
+                        `${index + 1}. ${text}`
+                    )}</li>`
+                );
+            })
             .join("");
 }
 
@@ -717,7 +885,7 @@ function renderPartySummary() {
 
     if (!appState.party) {
         elements.partySummary.textContent =
-            "Create a room to become White. The next player joins as Black. Up to 20 spectators can watch live.";
+            "Создайте комнату, чтобы играть белыми. Следующий игрок присоединится за чёрных. До 20 зрителей.";
 
         return;
     }
@@ -727,10 +895,10 @@ function renderPartySummary() {
 
     const roleText =
         role === "white"
-            ? "playing as White"
+            ? "вы играете белыми"
             : role === "black"
-                ? "playing as Black"
-                : "watching as a spectator";
+                ? "вы играете чёрными"
+                : "вы зритель";
 
     const timeLabel =
         appState.partySnapshot
@@ -738,7 +906,7 @@ function renderPartySummary() {
         "Без часов";
 
     elements.partySummary.textContent =
-        `Party ${appState.party.code} · ${roleText}. ${timeLabel}.`;
+        `Комната ${appState.party.code} · ${roleText} · ${timeLabel}.`;
 }
 
 
@@ -782,17 +950,21 @@ function renderClocks() {
     if (!enabled) {
         if (elements.whiteClock) {
             elements.whiteClock.textContent = "∞";
+
             elements.whiteClock.classList.remove(
                 "active",
-                "low"
+                "low",
+                "danger"
             );
         }
 
         if (elements.blackClock) {
             elements.blackClock.textContent = "∞";
+
             elements.blackClock.classList.remove(
                 "active",
-                "low"
+                "low",
+                "danger"
             );
         }
 
@@ -819,6 +991,11 @@ function renderClocks() {
             "low",
             white <= 10
         );
+
+        elements.whiteClock.classList.toggle(
+            "danger",
+            white <= 5
+        );
     }
 
     if (elements.blackClock) {
@@ -834,6 +1011,11 @@ function renderClocks() {
         elements.blackClock.classList.toggle(
             "low",
             black <= 10
+        );
+
+        elements.blackClock.classList.toggle(
+            "danger",
+            black <= 5
         );
     }
 }
@@ -851,28 +1033,61 @@ function renderConnectionBadge() {
     if (appState.mode === "ai") {
         elements.connectionBadge.textContent =
             appState.isAiThinking
-                ? "Computer thinking"
-                : `AI: ${appState.aiLevel}`;
+                ? "Компьютер думает"
+                : `AI · ${appState.aiLevel}`;
+
+        elements.connectionBadge.className =
+            "status-chip connection-solo";
 
         return;
     }
 
     if (!appState.party) {
         elements.connectionBadge.textContent =
-            "Party idle";
+            "Party ожидание";
+
+        elements.connectionBadge.className =
+            "status-chip connection-solo";
 
         return;
     }
 
     const role =
         appState.party.role === "white"
-            ? "White"
+            ? "Белые"
             : appState.party.role === "black"
-                ? "Black"
-                : "Spectator";
+                ? "Чёрные"
+                : "Зритель";
 
     elements.connectionBadge.textContent =
-        `Party ${appState.party.code} · ${role}`;
+        `${appState.party.code} · ${role}`;
+
+    elements.connectionBadge.className =
+        "status-chip connection-party";
+}
+
+
+/* =========================================================
+   STATUS BADGE
+========================================================= */
+
+function renderTurnBadge() {
+    if (!elements.turnBadge) {
+        return;
+    }
+
+    const turn =
+        appState.engine.state.turn;
+
+    elements.turnBadge.classList.toggle(
+        "turn-white",
+        turn === "w"
+    );
+
+    elements.turnBadge.classList.toggle(
+        "turn-black",
+        turn === "b"
+    );
 }
 
 
@@ -886,8 +1101,12 @@ function render() {
     renderPartySummary();
     renderClocks();
     renderConnectionBadge();
+    renderTurnBadge();
+    renderCaptured();
+    renderMoveHistory();
 
-    const status = formatStatus();
+    const status =
+        formatStatus();
 
     if (elements.turnBadge) {
         elements.turnBadge.textContent =
@@ -939,7 +1158,8 @@ function openPromotionDialog(moves) {
 
         button.textContent =
             PIECE_GLYPHS[
-                move.color
+                move.color ||
+                appState.engine.state.turn
             ][promotion];
 
         button.addEventListener(
@@ -1013,7 +1233,7 @@ async function submitMove(move) {
 
             showToast(
                 response.error ||
-                    "Move rejected.",
+                    "Ход отклонён.",
                 "error"
             );
 
@@ -1039,7 +1259,7 @@ async function submitMove(move) {
     if (!result.ok) {
         showToast(
             result.error ||
-                "Illegal move.",
+                "Недопустимый ход.",
             "error"
         );
 
@@ -1084,7 +1304,10 @@ function handleSquareClick(square) {
                 );
 
         if (matchingMoves.length === 1) {
-            submitMove(matchingMoves[0]);
+            submitMove(
+                matchingMoves[0]
+            );
+
             return;
         }
 
@@ -1092,6 +1315,7 @@ function handleSquareClick(square) {
             openPromotionDialog(
                 matchingMoves
             );
+
             return;
         }
     }
@@ -1111,6 +1335,7 @@ function handleSquareClick(square) {
                 : square;
 
         renderBoard();
+
         return;
     }
 
@@ -1304,8 +1529,8 @@ function updateAiClock() {
 
         appState.gameOverMessage =
             color === "w"
-                ? "Black wins on time."
-                : "White wins on time.";
+                ? "Чёрные победили по времени."
+                : "Белые победили по времени.";
 
         stopAiClock();
 
@@ -1368,6 +1593,7 @@ function resetLocalGame() {
         new ChessEngine();
 
     appState.partySnapshot = null;
+    appState.selectedSquare = null;
 
     appState.orientation =
         appState.playerColor;
@@ -1416,7 +1642,7 @@ async function postJson(url, body) {
                 ok: false,
 
                 error:
-                    `Server returned ${response.status} instead of JSON.`,
+                    `Сервер вернул ${response.status} вместо JSON.`,
             };
         }
 
@@ -1428,7 +1654,7 @@ async function postJson(url, body) {
             error:
                 error instanceof Error
                     ? error.message
-                    : "Network error.",
+                    : "Ошибка сети.",
         };
     }
 }
@@ -1474,6 +1700,8 @@ function hydratePartyState(
         new ChessEngine(
             partyPayload.game
         );
+
+    appState.selectedSquare = null;
 
     appState.gameOver =
         Boolean(
@@ -1581,7 +1809,7 @@ function connectPartyStream() {
             elements.connectionBadge
         ) {
             elements.connectionBadge.textContent =
-                `Party ${code} · reconnecting`;
+                `Party ${code} · переподключение`;
         }
     };
 
@@ -1624,7 +1852,7 @@ async function createParty() {
     if (!response.ok) {
         showToast(
             response.error ||
-                "Unable to create party.",
+                "Не удалось создать комнату.",
             "error"
         );
 
@@ -1644,7 +1872,7 @@ async function createParty() {
     connectPartyStream();
 
     showToast(
-        `Party ${response.party.code} created.`,
+        `Комната ${response.party.code} создана.`,
         "success"
     );
 }
@@ -1662,7 +1890,7 @@ async function joinParty(code) {
 
     if (!normalizedCode) {
         showToast(
-            "Enter a party code first.",
+            "Введите код комнаты.",
             "error"
         );
 
@@ -1674,7 +1902,7 @@ async function joinParty(code) {
         normalizedCode
     ) {
         showToast(
-            `You are already in party ${normalizedCode}.`
+            `Вы уже в комнате ${normalizedCode}.`
         );
 
         return;
@@ -1706,7 +1934,7 @@ async function joinParty(code) {
     if (!response.ok) {
         showToast(
             response.error ||
-                "Unable to join party.",
+                "Не удалось войти в комнату.",
             "error"
         );
 
@@ -1726,7 +1954,7 @@ async function joinParty(code) {
     connectPartyStream();
 
     showToast(
-        `Joined party ${response.party.code}.`,
+        `Вы вошли в комнату ${response.party.code}.`,
         "success"
     );
 }
@@ -1774,7 +2002,7 @@ async function leaveParty(
 
     if (!silent) {
         showToast(
-            "Left the party room."
+            "Вы покинули комнату."
         );
     }
 }
@@ -1802,12 +2030,12 @@ async function copyInviteLink() {
         );
 
         showToast(
-            "Invite link copied.",
+            "Ссылка скопирована.",
             "success"
         );
     } catch {
         showToast(
-            `Party code: ${appState.party.code}`
+            `Код комнаты: ${appState.party.code}`
         );
     }
 }
@@ -1960,7 +2188,28 @@ function bindEvents() {
             resetLocalGame();
 
             showToast(
-                "New AI game ready.",
+                "Новая партия с ИИ готова.",
+                "success"
+            );
+        }
+    );
+
+
+    elements.newGameToolbarButton?.addEventListener(
+        "click",
+        async () => {
+            if (appState.mode === "party") {
+                showToast(
+                    "Для новой партии создайте новую комнату."
+                );
+
+                return;
+            }
+
+            resetLocalGame();
+
+            showToast(
+                "Новая партия.",
                 "success"
             );
         }
@@ -1968,6 +2217,12 @@ function bindEvents() {
 
 
     elements.createPartyButton?.addEventListener(
+        "click",
+        createParty
+    );
+
+
+    elements.newPartyGameButton?.addEventListener(
         "click",
         createParty
     );
@@ -2113,5 +2368,3 @@ async function init() {
 ========================================================= */
 
 init();
-
-
