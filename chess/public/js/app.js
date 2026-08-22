@@ -44,141 +44,79 @@ const STORAGE_KEYS = {
 
 
 /* =========================================================
+   TIME CONTROLS
+========================================================= */
+
+const TIME_CONTROLS = {
+    none: 0,
+
+    "1+0": 60,
+    "3+0": 180,
+    "3+2": 180,
+    "5+0": 300,
+    "5+3": 300,
+    "10+0": 600,
+    "15+10": 900,
+    "30+0": 1800,
+    "30+20": 1800,
+};
+
+
+/* =========================================================
    ELEMENTS
 ========================================================= */
 
 const elements = {
-    modeBadge:
-        document.querySelector("#modeBadge"),
+    modeBadge: document.querySelector("#modeBadge"),
+    connectionBadge: document.querySelector("#connectionBadge"),
 
-    connectionBadge:
-        document.querySelector("#connectionBadge"),
+    board: document.querySelector("#board"),
 
-    board:
-        document.querySelector("#board"),
+    statusMessage: document.querySelector("#statusMessage"),
+    turnBadge: document.querySelector("#turnBadge"),
 
-    statusMessage:
-        document.querySelector("#statusMessage"),
+    modeAiButton: document.querySelector("#modeAiButton"),
+    modePartyButton: document.querySelector("#modePartyButton"),
 
-    turnBadge:
-        document.querySelector("#turnBadge"),
+    playerNameInput: document.querySelector("#playerNameInput"),
 
-    modeAiButton:
-        document.querySelector("#modeAiButton"),
+    aiControls: document.querySelector("#aiControls"),
+    partyControls: document.querySelector("#partyControls"),
 
-    modePartyButton:
-        document.querySelector("#modePartyButton"),
+    aiLevelSelect: document.querySelector("#aiLevelSelect"),
+    playerColorSelect: document.querySelector("#playerColorSelect"),
 
-    playerNameInput:
-        document.querySelector("#playerNameInput"),
+    aiTimeControl: document.querySelector("#aiClockSelect"),
+    partyTimeControl: document.querySelector("#partyClockSelect"),
 
-    aiControls:
-        document.querySelector("#aiControls"),
+    startAiButton: document.querySelector("#startAiButton"),
 
-    partyControls:
-        document.querySelector("#partyControls"),
+    createPartyButton: document.querySelector("#createPartyButton"),
+    partyCodeInput: document.querySelector("#partyCodeInput"),
+    joinPartyButton: document.querySelector("#joinPartyButton"),
+    leavePartyButton: document.querySelector("#leavePartyButton"),
 
-    aiLevelSelect:
-        document.querySelector("#aiLevelSelect"),
+    partySummary: document.querySelector("#partySummary"),
+    copyInviteButton: document.querySelector("#copyInviteButton"),
 
-    playerColorSelect:
-        document.querySelector("#playerColorSelect"),
+    flipBoardButton: document.querySelector("#flipBoardButton"),
 
-    aiTimeControl:
-        document.querySelector("#aiClockSelect"),
+    whitePlayerLabel: document.querySelector("#whitePlayerLabel"),
+    blackPlayerLabel: document.querySelector("#blackPlayerLabel"),
 
-    partyTimeControl:
-        document.querySelector("#partyClockSelect"),
+    rosterWhite: document.querySelector("#rosterWhite"),
+    rosterBlack: document.querySelector("#rosterBlack"),
 
-    startAiButton:
-        document.querySelector("#startAiButton"),
+    spectatorList: document.querySelector("#spectatorList"),
+    spectatorCount: document.querySelector("#spectatorCount"),
 
-    createPartyButton:
-        document.querySelector("#createPartyButton"),
+    whiteClock: document.querySelector("#whiteClock"),
+    blackClock: document.querySelector("#blackClock"),
 
-    partyCodeInput:
-        document.querySelector("#partyCodeInput"),
+    promotionDialog: document.querySelector("#promotionDialog"),
+    promotionOptions: document.querySelector("#promotionOptions"),
 
-    joinPartyButton:
-        document.querySelector("#joinPartyButton"),
-
-    leavePartyButton:
-        document.querySelector("#leavePartyButton"),
-
-    partySummary:
-        document.querySelector("#partySummary"),
-
-    copyInviteButton:
-        document.querySelector("#copyInviteButton"),
-
-    flipBoardButton:
-        document.querySelector("#flipBoardButton"),
-
-    whitePlayerLabel:
-        document.querySelector("#whitePlayerLabel"),
-
-    blackPlayerLabel:
-        document.querySelector("#blackPlayerLabel"),
-
-    rosterWhite:
-        document.querySelector("#rosterWhite"),
-
-    rosterBlack:
-        document.querySelector("#rosterBlack"),
-
-    spectatorList:
-        document.querySelector("#spectatorList"),
-
-    spectatorCount:
-        document.querySelector("#spectatorCount"),
-
-    whiteClock:
-        document.querySelector("#whiteClock"),
-
-    blackClock:
-        document.querySelector("#blackClock"),
-
-    resignButton:
-        document.querySelector("#resignButton"),
-
-    drawButton:
-        document.querySelector("#drawButton"),
-
-    rematchButton:
-        document.querySelector("#rematchButton"),
-
-    drawRequest:
-        document.querySelector("#drawRequest"),
-
-    drawRequestName:
-        document.querySelector("#drawRequestName"),
-
-    acceptDrawButton:
-        document.querySelector("#acceptDrawButton"),
-
-    declineDrawButton:
-        document.querySelector("#declineDrawButton"),
-
-    chatPanel:
-        document.querySelector("#chatPanel"),
-
-    chatMessages:
-        document.querySelector("#chatMessages"),
-
-    chatForm:
-        document.querySelector("#chatForm"),
-
-    chatInput:
-        document.querySelector("#chatInput"),
-
-    promotionDialog:
-        document.querySelector("#promotionDialog"),
-
-    promotionOptions:
-        document.querySelector("#promotionOptions"),
-
-    toastHost:
-        document.querySelector("#toastHost"),
+    toastHost: document.querySelector("#toastHost"),
 };
 
 
@@ -189,81 +127,37 @@ const elements = {
 const appState = {
     mode: "ai",
 
-    engine:
-        new ChessEngine(),
+    engine: new ChessEngine(),
 
     orientation: "w",
+    selectedSquare: null,
 
-    selectedSquare:
-        null,
+    aiLevel: "intermediate",
+    playerColor: "w",
+    aiTimeControl: "10+0",
 
-    aiLevel:
-        "intermediate",
+    isAiThinking: false,
+    aiMoveTimer: null,
+    aiClockTimer: null,
 
-    playerColor:
-        "w",
+    pendingPromotionMoves: null,
 
-    aiTimeControl:
-        "10+0",
+    playerName: "Guest",
 
-    isAiThinking:
-        false,
+    party: null,
+    partySnapshot: null,
+    partyStream: null,
 
-    pendingPromotionMoves:
-        null,
-
-    party:
-        null,
-
-    partySnapshot:
-        null,
-
-    partyStream:
-        null,
-
-    playerName:
-        "Guest",
-
-    gameOver:
-        false,
-
-    gameOverMessage:
-        null,
-
-    drawOfferPending:
-        false,
-
-    drawOfferFrom:
-        null,
+    gameOver: false,
+    gameOverMessage: null,
 
     localClocks: {
-        white: 600,
-        black: 600,
+        white: 0,
+        black: 0,
         running: false,
-        lastTick: Date.now(),
         turn: "w",
+        lastTick: 0,
     },
-
-    aiClockTimer:
-        null,
-};
-
-
-/* =========================================================
-   TIME CONTROLS
-========================================================= */
-
-const TIME_CONTROLS = {
-    none: 0,
-    "1+0": 60,
-    "3+0": 180,
-    "3+2": 180,
-    "5+0": 300,
-    "5+3": 300,
-    "10+0": 600,
-    "15+10": 900,
-    "30+0": 1800,
-    "30+20": 1800,
 };
 
 
@@ -290,15 +184,11 @@ function currentHumanColor() {
         return null;
     }
 
-    if (
-        appState.party.role === "white"
-    ) {
+    if (appState.party.role === "white") {
         return "w";
     }
 
-    if (
-        appState.party.role === "black"
-    ) {
+    if (appState.party.role === "black") {
         return "b";
     }
 
@@ -307,11 +197,8 @@ function currentHumanColor() {
 
 
 function isHumanTurn() {
-    const color =
-        currentHumanColor();
-
-    const status =
-        currentStatus();
+    const color = currentHumanColor();
+    const status = currentStatus();
 
     return Boolean(
         color &&
@@ -319,6 +206,17 @@ function isHumanTurn() {
         appState.engine.state.turn === color &&
         !appState.isAiThinking &&
         !appState.gameOver
+    );
+}
+
+
+function isFinished() {
+    const status = currentStatus();
+
+    return Boolean(
+        appState.gameOver ||
+        status.phase === "checkmate" ||
+        status.phase === "draw"
     );
 }
 
@@ -334,6 +232,12 @@ function getLegalMovesForSelected() {
 }
 
 
+function clearSelection() {
+    appState.selectedSquare = null;
+    appState.pendingPromotionMoves = null;
+}
+
+
 function escapeHtml(value) {
     return String(value)
         .replaceAll("&", "&amp;")
@@ -345,27 +249,17 @@ function escapeHtml(value) {
 
 
 function formatClock(seconds) {
-    const safe =
-        Math.max(
-            0,
-            Number(seconds) || 0
-        );
+    const total = Math.max(
+        0,
+        Math.ceil(Number(seconds) || 0)
+    );
 
-    const total =
-        Math.ceil(safe);
-
-    const minutes =
-        Math.floor(total / 60);
-
-    const secs =
-        total % 60;
+    const minutes = Math.floor(total / 60);
+    const secs = total % 60;
 
     if (minutes >= 60) {
-        const hours =
-            Math.floor(minutes / 60);
-
-        const mins =
-            minutes % 60;
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
 
         return (
             `${String(hours).padStart(2, "0")}:` +
@@ -381,31 +275,33 @@ function formatClock(seconds) {
 }
 
 
+function getIncrementForTimeControl(value) {
+    const parts = String(value || "").split("+");
+    return Number(parts[1] || 0);
+}
+
+
+function getTimeControlSeconds(value) {
+    return TIME_CONTROLS[value] || 0;
+}
+
+
 /* =========================================================
    TOAST
 ========================================================= */
 
-function showToast(
-    message,
-    type = "info"
-) {
+function showToast(message, type = "info") {
     if (!elements.toastHost) {
-        alert(message);
+        console.log(message);
         return;
     }
 
-    const toast =
-        document.createElement("div");
+    const toast = document.createElement("div");
 
-    toast.className =
-        `toast ${type}`;
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
 
-    toast.textContent =
-        message;
-
-    elements.toastHost.appendChild(
-        toast
-    );
+    elements.toastHost.appendChild(toast);
 
     window.setTimeout(
         () => toast.remove(),
@@ -421,44 +317,35 @@ function showToast(
 function setMode(mode) {
     appState.mode = mode;
 
-    elements.modeAiButton
-        ?.classList.toggle(
-            "active",
-            mode === "ai"
-        );
+    const isAi = mode === "ai";
+    const isParty = mode === "party";
 
-    elements.modePartyButton
-        ?.classList.toggle(
-            "active",
-            mode === "party"
-        );
+    elements.modeAiButton?.classList.toggle(
+        "active",
+        isAi
+    );
 
-    elements.aiControls
-        ?.classList.toggle(
-            "hidden",
-            mode !== "ai"
-        );
+    elements.modePartyButton?.classList.toggle(
+        "active",
+        isParty
+    );
 
-    elements.partyControls
-        ?.classList.toggle(
-            "hidden",
-            mode !== "party"
-        );
+    elements.aiControls?.classList.toggle(
+        "hidden",
+        !isAi
+    );
 
-    elements.chatPanel
-        ?.classList.toggle(
-            "hidden",
-            mode !== "party"
-        );
+    elements.partyControls?.classList.toggle(
+        "hidden",
+        !isParty
+    );
 
     if (elements.modeBadge) {
         elements.modeBadge.textContent =
-            mode === "ai"
+            isAi
                 ? "AI Arena"
                 : "Party Lounge";
     }
-
-    render();
 }
 
 
@@ -467,20 +354,12 @@ function setMode(mode) {
 ========================================================= */
 
 function updatePartyUrl(code = null) {
-    const url =
-        new URL(
-            window.location.href
-        );
+    const url = new URL(window.location.href);
 
     if (code) {
-        url.searchParams.set(
-            "party",
-            code
-        );
+        url.searchParams.set("party", code);
     } else {
-        url.searchParams.delete(
-            "party"
-        );
+        url.searchParams.delete("party");
     }
 
     window.history.replaceState(
@@ -505,15 +384,12 @@ function renderBoard() {
     const selectedMoves =
         getLegalMovesForSelected();
 
-    const moveTargets =
-        new Map(
-            selectedMoves.map(
-                move => [
-                    move.to,
-                    move,
-                ]
-            )
-        );
+    const moveTargets = new Map(
+        selectedMoves.map(move => [
+            move.to,
+            move,
+        ])
+    );
 
     const orientation =
         appState.orientation;
@@ -528,8 +404,7 @@ function renderBoard() {
             ? [7, 6, 5, 4, 3, 2, 1, 0]
             : [0, 1, 2, 3, 4, 5, 6, 7];
 
-    const status =
-        currentStatus();
+    const status = currentStatus();
 
     const checkColor =
         status.check
@@ -539,28 +414,18 @@ function renderBoard() {
     const lastMove =
         appState.engine.state.lastMove;
 
-    for (
-        const y of yOrder
-    ) {
-        for (
-            const x of xOrder
-        ) {
+    for (const y of yOrder) {
+        for (const x of xOrder) {
             const squareName =
-                ChessRules.toSquare(
-                    x,
-                    y
-                );
+                ChessRules.toSquare(x, y);
 
             const piece =
                 appState.engine.state.board[y][x];
 
             const square =
-                document.createElement(
-                    "button"
-                );
+                document.createElement("button");
 
             square.type = "button";
-
             square.className =
                 `square ${
                     (x + y) % 2 === 0
@@ -581,9 +446,7 @@ function renderBoard() {
             }
 
             const move =
-                moveTargets.get(
-                    squareName
-                );
+                moveTargets.get(squareName);
 
             if (move) {
                 square.classList.add(
@@ -617,9 +480,7 @@ function renderBoard() {
 
             if (piece) {
                 const pieceNode =
-                    document.createElement(
-                        "span"
-                    );
+                    document.createElement("span");
 
                 pieceNode.className =
                     `piece ${
@@ -633,29 +494,22 @@ function renderBoard() {
                         piece.color
                     ][piece.type];
 
-                square.appendChild(
-                    pieceNode
-                );
+                square.appendChild(pieceNode);
             }
 
             square.addEventListener(
                 "click",
-                () =>
-                    handleSquareClick(
-                        squareName
-                    )
+                () => handleSquareClick(squareName)
             );
 
-            elements.board.appendChild(
-                square
-            );
+            elements.board.appendChild(square);
         }
     }
 }
 
 
 /* =========================================================
-   STATUS
+   GAME STATUS
 ========================================================= */
 
 function formatStatus() {
@@ -663,45 +517,33 @@ function formatStatus() {
         return getGameOverMessage();
     }
 
-    const status =
-        currentStatus();
+    const status = currentStatus();
 
-    if (
-        status.phase ===
-        "checkmate"
-    ) {
+    if (status.phase === "checkmate") {
         return "Checkmate";
     }
 
-    if (
-        status.phase ===
-        "draw"
-    ) {
+    if (status.phase === "draw") {
         return "Draw";
     }
 
     if (status.check) {
-        return (
-            appState.engine.state.turn === "w"
-                ? "White is in check"
-                : "Black is in check"
-        );
+        return appState.engine.state.turn === "w"
+            ? "White is in check"
+            : "Black is in check";
     }
 
-    return (
-        appState.engine.state.turn === "w"
-            ? "White to move"
-            : "Black to move"
-    );
+    return appState.engine.state.turn === "w"
+        ? "White to move"
+        : "Black to move";
 }
 
 
-/* =========================================================
-   GAME OVER
-========================================================= */
-
 function getGameOverMessage() {
-    if (!appState.partySnapshot) {
+    const snapshot =
+        appState.partySnapshot;
+
+    if (!snapshot) {
         return (
             appState.gameOverMessage ||
             "Game over."
@@ -709,49 +551,31 @@ function getGameOverMessage() {
     }
 
     const reason =
-        appState.partySnapshot
-            .gameOverReason;
+        snapshot.gameOverReason;
 
     const winner =
-        appState.partySnapshot.winner;
+        snapshot.winner;
 
-    if (
-        reason === "agreement"
-    ) {
-        return "Draw agreed.";
+    switch (reason) {
+        case "timeout":
+            return winner === "w"
+                ? "White wins on time."
+                : "Black wins on time.";
+
+        case "checkmate":
+            return winner === "w"
+                ? "White wins by checkmate."
+                : "Black wins by checkmate.";
+
+        case "draw":
+            return "Draw.";
+
+        default:
+            return (
+                appState.gameOverMessage ||
+                "Game over."
+            );
     }
-
-    if (
-        reason === "timeout"
-    ) {
-        return winner === "w"
-            ? "White wins on time."
-            : "Black wins on time.";
-    }
-
-    if (
-        reason === "resignation"
-    ) {
-        return winner === "w"
-            ? "White wins — Black resigned."
-            : "Black wins — White resigned.";
-    }
-
-    if (
-        reason === "checkmate"
-    ) {
-        return winner === "w"
-            ? "White wins by checkmate."
-            : "Black wins by checkmate.";
-    }
-
-    if (
-        reason === "draw"
-    ) {
-        return "Draw.";
-    }
-
-    return "Game over.";
 }
 
 
@@ -762,8 +586,7 @@ function getGameOverMessage() {
 function renderRoster() {
     if (appState.mode === "ai") {
         const human =
-            appState.playerName ||
-            "You";
+            appState.playerName || "You";
 
         const whiteName =
             appState.playerColor === "w"
@@ -775,44 +598,32 @@ function renderRoster() {
                 ? human
                 : `Computer (${appState.aiLevel})`;
 
-        if (
-            elements.whitePlayerLabel
-        ) {
+        if (elements.whitePlayerLabel) {
             elements.whitePlayerLabel.textContent =
                 whiteName;
         }
 
-        if (
-            elements.blackPlayerLabel
-        ) {
+        if (elements.blackPlayerLabel) {
             elements.blackPlayerLabel.textContent =
                 blackName;
         }
 
-        if (
-            elements.rosterWhite
-        ) {
+        if (elements.rosterWhite) {
             elements.rosterWhite.textContent =
                 whiteName;
         }
 
-        if (
-            elements.rosterBlack
-        ) {
+        if (elements.rosterBlack) {
             elements.rosterBlack.textContent =
                 blackName;
         }
 
-        if (
-            elements.spectatorList
-        ) {
+        if (elements.spectatorList) {
             elements.spectatorList.innerHTML =
                 "<li>None in AI mode</li>";
         }
 
-        if (
-            elements.spectatorCount
-        ) {
+        if (elements.spectatorCount) {
             elements.spectatorCount.textContent =
                 "0 / 20";
         }
@@ -821,12 +632,10 @@ function renderRoster() {
     }
 
     const white =
-        appState.partySnapshot
-            ?.players?.white;
+        appState.partySnapshot?.players?.white;
 
     const black =
-        appState.partySnapshot
-            ?.players?.black;
+        appState.partySnapshot?.players?.black;
 
     const whiteName =
         white
@@ -846,48 +655,31 @@ function renderRoster() {
             }`
             : "Open seat";
 
-    if (
-        elements.whitePlayerLabel
-    ) {
-        elements.whitePlayerLabel.textContent =
-            whiteName;
-    }
+    elements.whitePlayerLabel &&
+        (elements.whitePlayerLabel.textContent =
+            whiteName);
 
-    if (
-        elements.blackPlayerLabel
-    ) {
-        elements.blackPlayerLabel.textContent =
-            blackName;
-    }
+    elements.blackPlayerLabel &&
+        (elements.blackPlayerLabel.textContent =
+            blackName);
 
-    if (
-        elements.rosterWhite
-    ) {
-        elements.rosterWhite.textContent =
-            whiteName;
-    }
+    elements.rosterWhite &&
+        (elements.rosterWhite.textContent =
+            whiteName);
 
-    if (
-        elements.rosterBlack
-    ) {
-        elements.rosterBlack.textContent =
-            blackName;
-    }
+    elements.rosterBlack &&
+        (elements.rosterBlack.textContent =
+            blackName);
 
     const spectators =
-        appState.partySnapshot
-            ?.spectators || [];
+        appState.partySnapshot?.spectators || [];
 
-    if (
-        elements.spectatorCount
-    ) {
+    if (elements.spectatorCount) {
         elements.spectatorCount.textContent =
             `${spectators.length} / 20`;
     }
 
-    if (
-        !elements.spectatorList
-    ) {
+    if (!elements.spectatorList) {
         return;
     }
 
@@ -930,10 +722,13 @@ function renderPartySummary() {
         return;
     }
 
+    const role =
+        appState.party.role;
+
     const roleText =
-        appState.party.role === "white"
+        role === "white"
             ? "playing as White"
-            : appState.party.role === "black"
+            : role === "black"
                 ? "playing as Black"
                 : "watching as a spectator";
 
@@ -953,30 +748,23 @@ function renderPartySummary() {
 
 function renderClocks() {
     let clocks;
-
     let timeControl;
 
-    if (
-        appState.mode === "party"
-    ) {
+    if (appState.mode === "party") {
         clocks =
-            appState.partySnapshot
-                ?.clocks;
+            appState.partySnapshot?.clocks;
 
         timeControl =
-            appState.partySnapshot
-                ?.timeControl;
+            appState.partySnapshot?.timeControl;
     } else {
         clocks =
             appState.localClocks;
 
-        const seconds =
-            TIME_CONTROLS[
-                appState.aiTimeControl
-            ];
-
         timeControl = {
-            initial: seconds,
+            initial:
+                getTimeControlSeconds(
+                    appState.aiTimeControl
+                ),
 
             label:
                 elements.aiTimeControl
@@ -986,21 +774,26 @@ function renderClocks() {
         };
     }
 
-    const hasClock =
+    const enabled =
         Boolean(
-            timeControl &&
-            timeControl.initial > 0
+            timeControl?.initial > 0
         );
 
-    if (!hasClock) {
+    if (!enabled) {
         if (elements.whiteClock) {
-            elements.whiteClock.textContent =
-                "∞";
+            elements.whiteClock.textContent = "∞";
+            elements.whiteClock.classList.remove(
+                "active",
+                "low"
+            );
         }
 
         if (elements.blackClock) {
-            elements.blackClock.textContent =
-                "∞";
+            elements.blackClock.textContent = "∞";
+            elements.blackClock.classList.remove(
+                "active",
+                "low"
+            );
         }
 
         return;
@@ -1047,70 +840,39 @@ function renderClocks() {
 
 
 /* =========================================================
-   BUTTONS
+   CONNECTION BADGE
 ========================================================= */
 
-function updateGameButtons() {
-    const status =
-        currentStatus();
-
-    const finished =
-        appState.gameOver ||
-        status.phase === "checkmate" ||
-        status.phase === "draw";
-
-    const human =
-        Boolean(
-            currentHumanColor()
-        );
-
-    if (
-        elements.resignButton
-    ) {
-        elements.resignButton.disabled =
-            finished ||
-            !human;
+function renderConnectionBadge() {
+    if (!elements.connectionBadge) {
+        return;
     }
 
-    if (
-        elements.drawButton
-    ) {
-        const show =
-            appState.mode === "party" &&
-            human;
+    if (appState.mode === "ai") {
+        elements.connectionBadge.textContent =
+            appState.isAiThinking
+                ? "Computer thinking"
+                : `AI: ${appState.aiLevel}`;
 
-        elements.drawButton.classList.toggle(
-            "hidden",
-            !show
-        );
-
-        elements.drawButton.disabled =
-            finished ||
-            !human ||
-            appState.drawOfferPending;
-
-        elements.drawButton.innerHTML =
-            appState.drawOfferPending
-                ? "🤝 Ничья предложена"
-                : "🤝 Предложить ничью";
+        return;
     }
 
-    if (
-        elements.rematchButton
-    ) {
-        const show =
-            appState.mode === "party" &&
-            human;
+    if (!appState.party) {
+        elements.connectionBadge.textContent =
+            "Party idle";
 
-        elements.rematchButton.classList.toggle(
-            "hidden",
-            !show
-        );
-
-        elements.rematchButton.disabled =
-            !show ||
-            !finished;
+        return;
     }
+
+    const role =
+        appState.party.role === "white"
+            ? "White"
+            : appState.party.role === "black"
+                ? "Black"
+                : "Spectator";
+
+    elements.connectionBadge.textContent =
+        `Party ${appState.party.code} · ${role}`;
 }
 
 
@@ -1120,117 +882,32 @@ function updateGameButtons() {
 
 function render() {
     renderBoard();
-
     renderRoster();
-
     renderPartySummary();
-
     renderClocks();
+    renderConnectionBadge();
 
-    updateGameButtons();
+    const status = formatStatus();
 
-    if (
-        elements.turnBadge
-    ) {
+    if (elements.turnBadge) {
         elements.turnBadge.textContent =
-            formatStatus();
+            status;
     }
 
-    if (
-        elements.statusMessage
-    ) {
+    if (elements.statusMessage) {
         elements.statusMessage.textContent =
-            formatStatus();
+            status;
     }
 
-    if (
-        elements.connectionBadge
-    ) {
-        if (appState.mode === "ai") {
-            elements.connectionBadge.textContent =
-                appState.isAiThinking
-                    ? "Computer thinking"
-                    : `AI: ${appState.aiLevel}`;
-        } else if (appState.party) {
-            const role =
-                appState.party.role === "white"
-                    ? "White"
-                    : appState.party.role === "black"
-                        ? "Black"
-                        : "Spectator";
-
-            elements.connectionBadge.textContent =
-                `Party ${appState.party.code} · ${role}`;
-        } else {
-            elements.connectionBadge.textContent =
-                "Party idle";
-        }
-    }
-
-    elements.copyInviteButton
-        ?.classList.toggle(
-            "hidden",
-            !appState.party
-        );
-
-    elements.leavePartyButton
-        ?.classList.toggle(
-            "hidden",
-            !appState.party
-        );
-
-    renderDrawRequest();
-}
-
-
-/* =========================================================
-   DRAW REQUEST
-========================================================= */
-
-function renderDrawRequest() {
-    if (
-        !elements.drawRequest
-    ) {
-        return;
-    }
-
-    const offer =
-        appState.partySnapshot
-            ?.drawOffer;
-
-    const isIncoming =
-        Boolean(
-            offer &&
-            offer.by !==
-            appState.party?.clientId &&
-            !appState.gameOver
-        );
-
-    elements.drawRequest.classList.toggle(
+    elements.copyInviteButton?.classList.toggle(
         "hidden",
-        !isIncoming
+        !appState.party
     );
 
-    if (
-        isIncoming &&
-        elements.drawRequestName
-    ) {
-        elements.drawRequestName.textContent =
-            `${offer.name} предлагает ничью`;
-    }
-}
-
-
-/* =========================================================
-   SELECTION
-========================================================= */
-
-function clearSelection() {
-    appState.selectedSquare =
-        null;
-
-    appState.pendingPromotionMoves =
-        null;
+    elements.leavePartyButton?.classList.toggle(
+        "hidden",
+        !appState.party
+    );
 }
 
 
@@ -1238,46 +915,37 @@ function clearSelection() {
    PROMOTION
 ========================================================= */
 
-function openPromotionDialog(
-    moves
-) {
+function openPromotionDialog(moves) {
     appState.pendingPromotionMoves =
         moves;
 
-    if (
-        !elements.promotionOptions
-    ) {
+    if (!elements.promotionOptions) {
         return;
     }
 
-    elements.promotionOptions.innerHTML =
-        "";
+    elements.promotionOptions.innerHTML = "";
 
-    for (
-        const move of moves
-    ) {
+    for (const move of moves) {
         const button =
-            document.createElement(
-                "button"
-            );
+            document.createElement("button");
 
         button.type = "button";
-
         button.className =
             "promotion-button";
+
+        const promotion =
+            String(move.promotion || "Q")
+                .toUpperCase();
 
         button.textContent =
             PIECE_GLYPHS[
                 move.color
-            ][
-                move.promotion.toUpperCase()
-            ];
+            ][promotion];
 
         button.addEventListener(
             "click",
             () => {
                 closePromotionDialog();
-
                 submitMove(move);
             }
         );
@@ -1287,21 +955,18 @@ function openPromotionDialog(
         );
     }
 
-    elements.promotionDialog
-        ?.classList.remove(
-            "hidden"
-        );
+    elements.promotionDialog?.classList.remove(
+        "hidden"
+    );
 }
 
 
 function closePromotionDialog() {
-    appState.pendingPromotionMoves =
-        null;
+    appState.pendingPromotionMoves = null;
 
-    elements.promotionDialog
-        ?.classList.add(
-            "hidden"
-        );
+    elements.promotionDialog?.classList.add(
+        "hidden"
+    );
 }
 
 
@@ -1309,12 +974,8 @@ function closePromotionDialog() {
    MOVE
 ========================================================= */
 
-async function submitMove(
-    move
-) {
-    if (
-        appState.gameOver
-    ) {
+async function submitMove(move) {
+    if (appState.gameOver) {
         return;
     }
 
@@ -1334,15 +995,11 @@ async function submitMove(
                     clientId:
                         appState.party.clientId,
 
-                    from:
-                        move.from,
-
-                    to:
-                        move.to,
+                    from: move.from,
+                    to: move.to,
 
                     promotion:
-                        move.promotion ||
-                        null,
+                        move.promotion || null,
                 }
             );
 
@@ -1373,15 +1030,10 @@ async function submitMove(
 
     const result =
         appState.engine.makeMove({
-            from:
-                move.from,
-
-            to:
-                move.to,
-
+            from: move.from,
+            to: move.to,
             promotion:
-                move.promotion ||
-                null,
+                move.promotion || null,
         });
 
     if (!result.ok) {
@@ -1403,12 +1055,10 @@ async function submitMove(
 
 
 /* =========================================================
-   BOARD CLICK
+   BOARD INPUT
 ========================================================= */
 
-function handleSquareClick(
-    square
-) {
+function handleSquareClick(square) {
     if (
         appState.pendingPromotionMoves ||
         appState.gameOver
@@ -1416,53 +1066,38 @@ function handleSquareClick(
         return;
     }
 
+    if (!isHumanTurn()) {
+        clearSelection();
+        renderBoard();
+        return;
+    }
+
     const piece =
-        appState.engine.getPiece(
-            square
-        );
+        appState.engine.getPiece(square);
 
-    const humanColor =
-        currentHumanColor();
-
-    if (
-        appState.selectedSquare
-    ) {
+    if (appState.selectedSquare) {
         const matchingMoves =
             getLegalMovesForSelected()
                 .filter(
                     move =>
-                        move.to ===
-                        square
+                        move.to === square
                 );
 
-        if (
-            matchingMoves.length === 1
-        ) {
-            submitMove(
-                matchingMoves[0]
-            );
-
+        if (matchingMoves.length === 1) {
+            submitMove(matchingMoves[0]);
             return;
         }
 
-        if (
-            matchingMoves.length > 1
-        ) {
+        if (matchingMoves.length > 1) {
             openPromotionDialog(
                 matchingMoves
             );
-
             return;
         }
     }
 
-    if (!isHumanTurn()) {
-        clearSelection();
-
-        renderBoard();
-
-        return;
-    }
+    const humanColor =
+        currentHumanColor();
 
     if (
         piece &&
@@ -1471,18 +1106,15 @@ function handleSquareClick(
             appState.engine.state.turn
     ) {
         appState.selectedSquare =
-            appState.selectedSquare ===
-            square
+            appState.selectedSquare === square
                 ? null
                 : square;
 
         renderBoard();
-
         return;
     }
 
     clearSelection();
-
     renderBoard();
 }
 
@@ -1492,25 +1124,21 @@ function handleSquareClick(
 ========================================================= */
 
 function scheduleAiTurn() {
-    if (
-        appState.mode !== "ai"
-    ) {
+    stopAiMoveTimer();
+
+    if (appState.mode !== "ai") {
         return;
     }
 
-    const status =
-        currentStatus();
+    const status = currentStatus();
 
     if (
         !status ||
         status.phase !== "playing" ||
         appState.gameOver
     ) {
-        appState.isAiThinking =
-            false;
-
+        appState.isAiThinking = false;
         render();
-
         return;
     }
 
@@ -1518,49 +1146,58 @@ function scheduleAiTurn() {
         appState.engine.state.turn ===
         appState.playerColor
     ) {
-        appState.isAiThinking =
-            false;
-
+        appState.isAiThinking = false;
         render();
-
         return;
     }
 
-    appState.isAiThinking =
-        true;
-
+    appState.isAiThinking = true;
     render();
 
-    window.setTimeout(
-        () => {
-            if (
-                appState.mode !== "ai" ||
-                appState.gameOver
-            ) {
-                appState.isAiThinking =
-                    false;
+    appState.aiMoveTimer =
+        window.setTimeout(
+            () => {
+                appState.aiMoveTimer = null;
 
-                return;
-            }
+                if (
+                    appState.mode !== "ai" ||
+                    appState.gameOver
+                ) {
+                    appState.isAiThinking = false;
+                    render();
+                    return;
+                }
 
-            const move =
-                chooseComputerMove(
-                    appState.engine,
-                    appState.aiLevel
-                );
+                const move =
+                    chooseComputerMove(
+                        appState.engine,
+                        appState.aiLevel
+                    );
 
-            appState.isAiThinking =
-                false;
+                appState.isAiThinking = false;
 
-            if (!move) {
-                render();
-                return;
-            }
+                if (!move) {
+                    render();
+                    return;
+                }
 
-            submitMove(move);
-        },
-        400
-    );
+                submitMove(move);
+            },
+            400
+        );
+}
+
+
+function stopAiMoveTimer() {
+    if (appState.aiMoveTimer) {
+        window.clearTimeout(
+            appState.aiMoveTimer
+        );
+
+        appState.aiMoveTimer = null;
+    }
+
+    appState.isAiThinking = false;
 }
 
 
@@ -1572,17 +1209,21 @@ function startAiClock() {
     stopAiClock();
 
     const seconds =
-        TIME_CONTROLS[
+        getTimeControlSeconds(
             appState.aiTimeControl
-        ] || 0;
+        );
 
     appState.localClocks = {
         white: seconds,
         black: seconds,
+
         running: seconds > 0,
-        lastTick: Date.now(),
+
         turn:
             appState.engine.state.turn,
+
+        lastTick:
+            Date.now(),
     };
 
     render();
@@ -1595,14 +1236,7 @@ function startAiClock() {
         window.setInterval(
             () => {
                 updateAiClock();
-
                 renderClocks();
-
-                if (
-                    appState.gameOver
-                ) {
-                    stopAiClock();
-                }
             },
             250
         );
@@ -1610,22 +1244,20 @@ function startAiClock() {
 
 
 function stopAiClock() {
-    if (
-        appState.aiClockTimer
-    ) {
+    if (appState.aiClockTimer) {
         window.clearInterval(
             appState.aiClockTimer
         );
 
-        appState.aiClockTimer =
-            null;
+        appState.aiClockTimer = null;
     }
 }
 
 
 function updateAiClock() {
     if (
-        appState.mode !== "ai"
+        appState.mode !== "ai" ||
+        appState.gameOver
     ) {
         return;
     }
@@ -1633,54 +1265,49 @@ function updateAiClock() {
     const clocks =
         appState.localClocks;
 
-    if (
-        !clocks.running ||
-        !TIME_CONTROLS[
-            appState.aiTimeControl
-        ]
-    ) {
+    if (!clocks.running) {
         return;
     }
 
-    const now =
-        Date.now();
+    const now = Date.now();
 
     const elapsed =
-        (now - clocks.lastTick) /
-        1000;
+        Math.max(
+            0,
+            (now - clocks.lastTick) / 1000
+        );
 
-    if (elapsed <= 0) {
+    if (!elapsed) {
         return;
     }
 
-    const role =
-        clocks.turn === "w"
+    clocks.lastTick = now;
+
+    const color =
+        clocks.turn;
+
+    const key =
+        color === "w"
             ? "white"
             : "black";
 
-    clocks[role] =
+    clocks[key] =
         Math.max(
             0,
-            clocks[role] -
-                elapsed
+            clocks[key] - elapsed
         );
 
-    clocks.lastTick =
-        now;
+    if (clocks[key] <= 0) {
+        clocks.running = false;
 
-    if (
-        clocks[role] <= 0
-    ) {
-        clocks.running =
-            false;
-
-        appState.gameOver =
-            true;
+        appState.gameOver = true;
 
         appState.gameOverMessage =
-            clocks.turn === "w"
+            color === "w"
                 ? "Black wins on time."
                 : "White wins on time.";
+
+        stopAiClock();
 
         showToast(
             appState.gameOverMessage,
@@ -1696,32 +1323,28 @@ function updateAiClockAfterMove() {
     const clocks =
         appState.localClocks;
 
-    const increment =
-        getIncrementForTimeControl(
-            appState.aiTimeControl
-        );
-
-    if (
-        !clocks.running ||
-        !TIME_CONTROLS[
-            appState.aiTimeControl
-        ]
-    ) {
+    if (!clocks.running) {
         return;
     }
 
     updateAiClock();
 
+    if (appState.gameOver) {
+        return;
+    }
+
     const previousTurn =
         clocks.turn;
 
-    const role =
+    const key =
         previousTurn === "w"
             ? "white"
             : "black";
 
-    clocks[role] +=
-        increment;
+    clocks[key] +=
+        getIncrementForTimeControl(
+            appState.aiTimeControl
+        );
 
     clocks.turn =
         appState.engine.state.turn;
@@ -1731,57 +1354,28 @@ function updateAiClockAfterMove() {
 }
 
 
-function getIncrementForTimeControl(
-    value
-) {
-    const parts =
-        String(value).split("+");
-
-    return Number(
-        parts[1] || 0
-    );
-}
-
-
 /* =========================================================
-   LOCAL RESET
+   LOCAL GAME
 ========================================================= */
 
 function resetLocalGame() {
+    stopAiMoveTimer();
     stopAiClock();
 
     closePromotionDialog();
 
-    clearSelection();
-
     appState.engine =
         new ChessEngine();
 
-    appState.partySnapshot =
-        null;
+    appState.partySnapshot = null;
 
     appState.orientation =
         appState.playerColor;
 
-    appState.isAiThinking =
-        false;
-
-    appState.gameOver =
-        false;
-
-    appState.gameOverMessage =
-        null;
-
-    appState.drawOfferPending =
-        false;
-
-    appState.drawOfferFrom =
-        null;
+    appState.gameOver = false;
+    appState.gameOverMessage = null;
 
     startAiClock();
-
-    render();
-
     scheduleAiTurn();
 }
 
@@ -1790,10 +1384,7 @@ function resetLocalGame() {
    API
 ========================================================= */
 
-async function postJson(
-    url,
-    body
-) {
+async function postJson(url, body) {
     try {
         const response =
             await fetch(
@@ -1823,6 +1414,7 @@ async function postJson(
         ) {
             return {
                 ok: false,
+
                 error:
                     `Server returned ${response.status} instead of JSON.`,
             };
@@ -1832,6 +1424,7 @@ async function postJson(
     } catch (error) {
         return {
             ok: false,
+
             error:
                 error instanceof Error
                     ? error.message
@@ -1853,13 +1446,19 @@ function hydratePartyState(
         return;
     }
 
+    const previousCode =
+        appState.party?.code;
+
+    const previousClientId =
+        appState.party?.clientId;
+
     appState.party = {
         code:
             partyPayload.code,
 
         clientId:
             partyPayload.you?.id ||
-            appState.party?.clientId ||
+            previousClientId ||
             null,
 
         role:
@@ -1886,30 +1485,14 @@ function hydratePartyState(
             ? getGameOverMessage()
             : null;
 
-    appState.drawOfferPending =
-        Boolean(
-            partyPayload.drawOffer &&
-            partyPayload.drawOffer.by ===
-                appState.party.clientId
-        );
-
-    appState.drawOfferFrom =
-        partyPayload.drawOffer
-            ? partyPayload.drawOffer.name
-            : null;
-
     if (
         appState.party.role === "white"
     ) {
-        appState.orientation =
-            "w";
-    }
-
-    if (
+        appState.orientation = "w";
+    } else if (
         appState.party.role === "black"
     ) {
-        appState.orientation =
-            "b";
+        appState.orientation = "b";
     }
 
     setMode("party");
@@ -1921,14 +1504,6 @@ function hydratePartyState(
     render();
 
     if (
-        partyPayload.chat
-    ) {
-        renderChat(
-            partyPayload.chat
-        );
-    }
-
-    if (
         announce &&
         partyPayload.gameOverReason
     ) {
@@ -1937,11 +1512,23 @@ function hydratePartyState(
             "success"
         );
     }
+
+    if (
+        previousCode &&
+        previousCode !== partyPayload.code
+    ) {
+        console.info(
+            "Party changed:",
+            previousCode,
+            "→",
+            partyPayload.code
+        );
+    }
 }
 
 
 /* =========================================================
-   SSE
+   PARTY SSE
 ========================================================= */
 
 function connectPartyStream() {
@@ -1949,21 +1536,18 @@ function connectPartyStream() {
         return;
     }
 
-    if (
-        appState.partyStream
-    ) {
-        appState.partyStream.close();
-    }
+    closePartyStream();
+
+    const {
+        code,
+        clientId,
+    } = appState.party;
 
     const url =
         `/api/party/events?partyCode=${
-            encodeURIComponent(
-                appState.party.code
-            )
+            encodeURIComponent(code)
         }&clientId=${
-            encodeURIComponent(
-                appState.party.clientId
-            )
+            encodeURIComponent(clientId)
         }`;
 
     const stream =
@@ -1984,23 +1568,7 @@ function connectPartyStream() {
                 );
             } catch (error) {
                 console.error(
-                    error
-                );
-            }
-        }
-    );
-
-    stream.addEventListener(
-        "chat",
-        event => {
-            try {
-                appendChatMessage(
-                    JSON.parse(
-                        event.data
-                    )
-                );
-            } catch (error) {
-                console.error(
+                    "Party SSE error:",
                     error
                 );
             }
@@ -2013,12 +1581,19 @@ function connectPartyStream() {
             elements.connectionBadge
         ) {
             elements.connectionBadge.textContent =
-                `Party ${appState.party.code} · reconnecting`;
+                `Party ${code} · reconnecting`;
         }
     };
 
-    appState.partyStream =
-        stream;
+    appState.partyStream = stream;
+}
+
+
+function closePartyStream() {
+    if (appState.partyStream) {
+        appState.partyStream.close();
+        appState.partyStream = null;
+    }
 }
 
 
@@ -2032,8 +1607,8 @@ async function createParty() {
     }
 
     const timeControl =
-        elements.partyTimeControl
-            ?.value || "10+0";
+        elements.partyTimeControl?.value ||
+        "10+0";
 
     const response =
         await postJson(
@@ -2079,9 +1654,7 @@ async function createParty() {
    JOIN PARTY
 ========================================================= */
 
-async function joinParty(
-    code
-) {
+async function joinParty(code) {
     const normalizedCode =
         String(code || "")
             .trim()
@@ -2114,11 +1687,6 @@ async function joinParty(
     const storedIds =
         getStoredPartyIds();
 
-    const storedId =
-        storedIds[
-            normalizedCode
-        ] || null;
-
     const response =
         await postJson(
             "/api/party/join",
@@ -2130,7 +1698,8 @@ async function joinParty(
                     normalizedCode,
 
                 clientId:
-                    storedId,
+                    storedIds[normalizedCode] ||
+                    null,
             }
         );
 
@@ -2164,7 +1733,7 @@ async function joinParty(
 
 
 /* =========================================================
-   LEAVE
+   LEAVE PARTY
 ========================================================= */
 
 async function leaveParty(
@@ -2174,42 +1743,30 @@ async function leaveParty(
         return;
     }
 
-    const oldParty =
+    const party =
         appState.party;
+
+    closePartyStream();
 
     await postJson(
         "/api/party/leave",
         {
             partyCode:
-                oldParty.code,
+                party.code,
 
             clientId:
-                oldParty.clientId,
+                party.clientId,
         }
     );
 
-    if (
-        appState.partyStream
-    ) {
-        appState.partyStream.close();
-
-        appState.partyStream =
-            null;
-    }
-
     removeStoredPartyId(
-        oldParty.code
+        party.code
     );
 
-    appState.party =
-        null;
-
-    appState.partySnapshot =
-        null;
+    appState.party = null;
+    appState.partySnapshot = null;
 
     updatePartyUrl(null);
-
-    clearChat();
 
     setMode("ai");
 
@@ -2218,306 +1775,6 @@ async function leaveParty(
     if (!silent) {
         showToast(
             "Left the party room."
-        );
-    }
-}
-
-
-/* =========================================================
-   NEW PARTY GAME
-========================================================= */
-
-async function startNewPartyGame() {
-    if (!appState.party) {
-        return;
-    }
-
-    const response =
-        await postJson(
-            "/api/party/new-game",
-            {
-                partyCode:
-                    appState.party.code,
-
-                clientId:
-                    appState.party.clientId,
-            }
-        );
-
-    if (!response.ok) {
-        showToast(
-            response.error ||
-                "Unable to start a new game.",
-            "error"
-        );
-
-        return;
-    }
-
-    hydratePartyState(
-        response.party,
-        false
-    );
-
-    showToast(
-        "New game started.",
-        "success"
-    );
-}
-
-
-/* =========================================================
-   RESIGN
-========================================================= */
-
-async function resignGame() {
-    if (appState.gameOver) {
-        return;
-    }
-
-    const color =
-        currentHumanColor();
-
-    if (!color) {
-        return;
-    }
-
-    if (
-        !window.confirm(
-            "Вы действительно хотите сдаться?"
-        )
-    ) {
-        return;
-    }
-
-    if (
-        appState.mode === "party" &&
-        appState.party
-    ) {
-        const response =
-            await postJson(
-                "/api/party/resign",
-                {
-                    partyCode:
-                        appState.party.code,
-
-                    clientId:
-                        appState.party.clientId,
-                }
-            );
-
-        if (!response.ok) {
-            showToast(
-                response.error ||
-                    "Unable to resign.",
-                "error"
-            );
-
-            return;
-        }
-
-        hydratePartyState(
-            response.party,
-            false
-        );
-
-        showToast(
-            "Вы сдались.",
-            "info"
-        );
-
-        return;
-    }
-
-    appState.gameOver =
-        true;
-
-    appState.gameOverMessage =
-        color === "w"
-            ? "Black wins — White resigned."
-            : "White wins — Black resigned.";
-
-    stopAiClock();
-
-    showToast(
-        appState.gameOverMessage,
-        "success"
-    );
-
-    render();
-}
-
-
-/* =========================================================
-   DRAW
-========================================================= */
-
-async function offerDraw() {
-    if (
-        appState.mode !== "party" ||
-        appState.gameOver ||
-        !appState.party
-    ) {
-        return;
-    }
-
-    if (
-        appState.drawOfferPending
-    ) {
-        showToast(
-            "Вы уже предложили ничью."
-        );
-
-        return;
-    }
-
-    const response =
-        await postJson(
-            "/api/party/draw-offer",
-            {
-                partyCode:
-                    appState.party.code,
-
-                clientId:
-                    appState.party.clientId,
-            }
-        );
-
-    if (!response.ok) {
-        showToast(
-            response.error ||
-                "Unable to offer draw.",
-            "error"
-        );
-
-        return;
-    }
-
-    hydratePartyState(
-        response.party,
-        false
-    );
-
-    showToast(
-        "Предложение ничьей отправлено.",
-        "success"
-    );
-}
-
-
-/* =========================================================
-   DRAW RESPONSE
-========================================================= */
-
-async function respondToDraw(
-    accept
-) {
-    if (
-        !appState.party
-    ) {
-        return;
-    }
-
-    const response =
-        await postJson(
-            "/api/party/draw-response",
-            {
-                partyCode:
-                    appState.party.code,
-
-                clientId:
-                    appState.party.clientId,
-
-                accept:
-                    Boolean(accept),
-            }
-        );
-
-    if (!response.ok) {
-        showToast(
-            response.error ||
-                "Unable to respond.",
-            "error"
-        );
-
-        return;
-    }
-
-    hydratePartyState(
-        response.party,
-        false
-    );
-
-    showToast(
-        accept
-            ? "Ничья согласована."
-            : "Предложение отклонено.",
-        accept
-            ? "success"
-            : "info"
-    );
-}
-
-
-/* =========================================================
-   REMATCH
-========================================================= */
-
-async function requestRematch() {
-    if (
-        appState.mode !== "party" ||
-        !appState.party
-    ) {
-        return;
-    }
-
-    if (!appState.gameOver) {
-        showToast(
-            "Реванш доступен после окончания партии."
-        );
-
-        return;
-    }
-
-    const response =
-        await postJson(
-            "/api/party/rematch",
-            {
-                partyCode:
-                    appState.party.code,
-
-                clientId:
-                    appState.party.clientId,
-            }
-        );
-
-    if (!response.ok) {
-        showToast(
-            response.error ||
-                "Unable to request rematch.",
-            "error"
-        );
-
-        return;
-    }
-
-    hydratePartyState(
-        response.party,
-        false
-    );
-
-    if (
-        response.party.rematch.white &&
-        response.party.rematch.black
-    ) {
-        showToast(
-            "Реванш начинается!",
-            "success"
-        );
-    } else {
-        showToast(
-            "Вы выбрали реванш. Ждём второго игрока.",
-            "success"
         );
     }
 }
@@ -2557,221 +1814,6 @@ async function copyInviteLink() {
 
 
 /* =========================================================
-   CHAT
-========================================================= */
-
-function clearChat() {
-    if (
-        elements.chatMessages
-    ) {
-        elements.chatMessages.innerHTML =
-            `<div class="chat-empty">
-                Chat becomes available in Party mode.
-            </div>`;
-    }
-}
-
-
-function renderChat(
-    messages
-) {
-    clearChat();
-
-    if (
-        !messages ||
-        !messages.length
-    ) {
-        showChatEmpty();
-
-        return;
-    }
-
-    elements.chatMessages.innerHTML =
-        "";
-
-    for (
-        const message of messages
-    ) {
-        appendChatMessage(
-            message,
-            false
-        );
-    }
-
-    scrollChatToBottom();
-}
-
-
-function showChatEmpty() {
-    if (
-        elements.chatMessages
-    ) {
-        elements.chatMessages.innerHTML =
-            `<div class="chat-empty">
-                Пока сообщений нет.<br>
-                Начните разговор.
-            </div>`;
-    }
-}
-
-
-function appendChatMessage(
-    message,
-    scroll = true
-) {
-    if (
-        !elements.chatMessages
-    ) {
-        return;
-    }
-
-    const empty =
-        elements.chatMessages
-            .querySelector(
-                ".chat-empty"
-            );
-
-    empty?.remove();
-
-    const wrapper =
-        document.createElement(
-            "div"
-        );
-
-    wrapper.className =
-        "chat-message";
-
-    const meta =
-        document.createElement(
-            "div"
-        );
-
-    meta.className =
-        "chat-meta";
-
-    const name =
-        document.createElement(
-            "span"
-        );
-
-    name.className =
-        "chat-name";
-
-    name.textContent =
-        message.name ||
-        "Guest";
-
-    const time =
-        document.createElement(
-            "span"
-        );
-
-    time.textContent =
-        new Date(
-            message.time ||
-            Date.now()
-        ).toLocaleTimeString(
-            [],
-            {
-                hour: "2-digit",
-                minute: "2-digit",
-            }
-        );
-
-    meta.append(
-        name,
-        time
-    );
-
-    const text =
-        document.createElement(
-            "div"
-        );
-
-    text.className =
-        "chat-text";
-
-    text.textContent =
-        message.text ||
-        "";
-
-    wrapper.append(
-        meta,
-        text
-    );
-
-    elements.chatMessages.appendChild(
-        wrapper
-    );
-
-    if (scroll) {
-        scrollChatToBottom();
-    }
-}
-
-
-function scrollChatToBottom() {
-    if (
-        elements.chatMessages
-    ) {
-        elements.chatMessages.scrollTop =
-            elements.chatMessages.scrollHeight;
-    }
-}
-
-
-async function sendChatMessage(
-    event
-) {
-    event.preventDefault();
-
-    if (
-        !appState.party
-    ) {
-        return;
-    }
-
-    const message =
-        elements.chatInput?.value.trim();
-
-    if (!message) {
-        return;
-    }
-
-    const response =
-        await postJson(
-            "/api/party/chat",
-            {
-                partyCode:
-                    appState.party.code,
-
-                clientId:
-                    appState.party.clientId,
-
-                message,
-            }
-        );
-
-    if (!response.ok) {
-        showToast(
-            response.error ||
-                "Unable to send message.",
-            "error"
-        );
-
-        return;
-    }
-
-    if (
-        elements.chatInput
-    ) {
-        elements.chatInput.value =
-            "";
-    }
-}
-
-
-/* =========================================================
    STORAGE
 ========================================================= */
 
@@ -2792,11 +1834,14 @@ function setStoredPartyId(
     code,
     clientId
 ) {
+    if (!code || !clientId) {
+        return;
+    }
+
     const ids =
         getStoredPartyIds();
 
-    ids[code] =
-        clientId;
+    ids[code] = clientId;
 
     localStorage.setItem(
         STORAGE_KEYS.partyIds,
@@ -2805,9 +1850,11 @@ function setStoredPartyId(
 }
 
 
-function removeStoredPartyId(
-    code
-) {
+function removeStoredPartyId(code) {
+    if (!code) {
+        return;
+    }
+
     const ids =
         getStoredPartyIds();
 
@@ -2825,250 +1872,192 @@ function removeStoredPartyId(
 ========================================================= */
 
 function bindEvents() {
-    elements.playerNameInput
-        ?.addEventListener(
-            "input",
-            event => {
-                appState.playerName =
-                    event.target.value.trim() ||
-                    "Guest";
+    elements.playerNameInput?.addEventListener(
+        "input",
+        event => {
+            appState.playerName =
+                event.target.value.trim() ||
+                "Guest";
 
-                localStorage.setItem(
-                    STORAGE_KEYS.name,
-                    appState.playerName
-                );
+            localStorage.setItem(
+                STORAGE_KEYS.name,
+                appState.playerName
+            );
 
-                renderRoster();
-            }
-        );
-
-
-    elements.aiLevelSelect
-        ?.addEventListener(
-            "change",
-            event => {
-                appState.aiLevel =
-                    event.target.value;
-
-                render();
-            }
-        );
+            renderRoster();
+        }
+    );
 
 
-    elements.playerColorSelect
-        ?.addEventListener(
-            "change",
-            event => {
-                appState.playerColor =
-                    event.target.value;
+    elements.aiLevelSelect?.addEventListener(
+        "change",
+        event => {
+            appState.aiLevel =
+                event.target.value;
 
-                if (
-                    appState.mode ===
-                    "ai"
-                ) {
-                    resetLocalGame();
-                }
-            }
-        );
+            render();
+        }
+    );
 
 
-    elements.aiTimeControl
-        ?.addEventListener(
-            "change",
-            event => {
-                appState.aiTimeControl =
-                    event.target.value;
+    elements.playerColorSelect?.addEventListener(
+        "change",
+        event => {
+            appState.playerColor =
+                event.target.value;
 
-                if (
-                    appState.mode ===
-                    "ai"
-                ) {
-                    resetLocalGame();
-                }
-            }
-        );
-
-
-    elements.modeAiButton
-        ?.addEventListener(
-            "click",
-            async () => {
-                if (appState.party) {
-                    await leaveParty(true);
-                } else {
-                    setMode("ai");
-                    resetLocalGame();
-                }
-            }
-        );
-
-
-    elements.modePartyButton
-        ?.addEventListener(
-            "click",
-            () => {
-                setMode("party");
-            }
-        );
-
-
-    elements.startAiButton
-        ?.addEventListener(
-            "click",
-            async () => {
-                if (appState.party) {
-                    await leaveParty(true);
-                }
-
-                setMode("ai");
-
+            if (appState.mode === "ai") {
                 resetLocalGame();
-
-                showToast(
-                    "New AI game ready.",
-                    "success"
-                );
             }
-        );
+        }
+    );
 
 
-    elements.createPartyButton
-        ?.addEventListener(
-            "click",
-            createParty
-        );
+    elements.aiTimeControl?.addEventListener(
+        "change",
+        event => {
+            appState.aiTimeControl =
+                event.target.value;
 
-
-    elements.joinPartyButton
-        ?.addEventListener(
-            "click",
-            () =>
-                joinParty(
-                    elements.partyCodeInput
-                        ?.value
-                )
-        );
-
-
-    elements.leavePartyButton
-        ?.addEventListener(
-            "click",
-            () =>
-                leaveParty(false)
-        );
-
-
-    elements.copyInviteButton
-        ?.addEventListener(
-            "click",
-            copyInviteLink
-        );
-
-
-    elements.flipBoardButton
-        ?.addEventListener(
-            "click",
-            () => {
-                appState.orientation =
-                    appState.orientation ===
-                    "w"
-                        ? "b"
-                        : "w";
-
-                renderBoard();
+            if (appState.mode === "ai") {
+                resetLocalGame();
             }
-        );
+        }
+    );
 
 
-    elements.resignButton
-        ?.addEventListener(
-            "click",
-            resignGame
-        );
-
-
-    elements.drawButton
-        ?.addEventListener(
-            "click",
-            offerDraw
-        );
-
-
-    elements.rematchButton
-        ?.addEventListener(
-            "click",
-            requestRematch
-        );
-
-
-    elements.acceptDrawButton
-        ?.addEventListener(
-            "click",
-            () =>
-                respondToDraw(true)
-        );
-
-
-    elements.declineDrawButton
-        ?.addEventListener(
-            "click",
-            () =>
-                respondToDraw(false)
-        );
-
-
-    elements.chatForm
-        ?.addEventListener(
-            "submit",
-            sendChatMessage
-        );
-
-
-    elements.partyCodeInput
-        ?.addEventListener(
-            "input",
-            event => {
-                event.target.value =
-                    event.target.value
-                        .toUpperCase()
-                        .replace(
-                            /[^A-Z0-9]/g,
-                            ""
-                        );
+    elements.modeAiButton?.addEventListener(
+        "click",
+        async () => {
+            if (appState.party) {
+                await leaveParty(true);
+                return;
             }
-        );
+
+            setMode("ai");
+            resetLocalGame();
+        }
+    );
 
 
-    elements.partyCodeInput
-        ?.addEventListener(
-            "keydown",
-            event => {
-                if (
-                    event.key ===
-                    "Enter"
-                ) {
-                    event.preventDefault();
+    elements.modePartyButton?.addEventListener(
+        "click",
+        () => {
+            setMode("party");
+            render();
+        }
+    );
 
-                    joinParty(
-                        elements.partyCodeInput.value
+
+    elements.startAiButton?.addEventListener(
+        "click",
+        async () => {
+            if (appState.party) {
+                await leaveParty(true);
+            }
+
+            setMode("ai");
+            resetLocalGame();
+
+            showToast(
+                "New AI game ready.",
+                "success"
+            );
+        }
+    );
+
+
+    elements.createPartyButton?.addEventListener(
+        "click",
+        createParty
+    );
+
+
+    elements.joinPartyButton?.addEventListener(
+        "click",
+        () =>
+            joinParty(
+                elements.partyCodeInput?.value
+            )
+    );
+
+
+    elements.leavePartyButton?.addEventListener(
+        "click",
+        () => leaveParty(false)
+    );
+
+
+    elements.copyInviteButton?.addEventListener(
+        "click",
+        copyInviteLink
+    );
+
+
+    elements.flipBoardButton?.addEventListener(
+        "click",
+        () => {
+            appState.orientation =
+                appState.orientation === "w"
+                    ? "b"
+                    : "w";
+
+            renderBoard();
+        }
+    );
+
+
+    elements.partyCodeInput?.addEventListener(
+        "input",
+        event => {
+            event.target.value =
+                event.target.value
+                    .toUpperCase()
+                    .replace(
+                        /[^A-Z0-9]/g,
+                        ""
                     );
-                }
-            }
-        );
+        }
+    );
 
 
-    elements.promotionDialog
-        ?.addEventListener(
-            "click",
-            event => {
-                if (
-                    event.target ===
-                    elements.promotionDialog
-                ) {
-                    closePromotionDialog();
-                }
+    elements.partyCodeInput?.addEventListener(
+        "keydown",
+        event => {
+            if (event.key !== "Enter") {
+                return;
             }
-        );
+
+            event.preventDefault();
+
+            joinParty(
+                elements.partyCodeInput.value
+            );
+        }
+    );
+
+
+    elements.promotionDialog?.addEventListener(
+        "click",
+        event => {
+            if (
+                event.target ===
+                elements.promotionDialog
+            ) {
+                closePromotionDialog();
+            }
+        }
+    );
+
+
+    window.addEventListener(
+        "beforeunload",
+        () => {
+            stopAiMoveTimer();
+            stopAiClock();
+            closePartyStream();
+        }
+    );
 }
 
 
@@ -3088,9 +2077,7 @@ async function init() {
         appState.playerName =
             savedName;
 
-        if (
-            elements.playerNameInput
-        ) {
+        if (elements.playerNameInput) {
             elements.playerNameInput.value =
                 savedName;
         }
@@ -3107,23 +2094,23 @@ async function init() {
     if (partyCode) {
         setMode("party");
 
-        if (
-            elements.partyCodeInput
-        ) {
+        if (elements.partyCodeInput) {
             elements.partyCodeInput.value =
                 partyCode.toUpperCase();
         }
 
-        await joinParty(
-            partyCode
-        );
-
+        await joinParty(partyCode);
         return;
     }
 
     setMode("ai");
-
     resetLocalGame();
 }
 
+
+/* =========================================================
+   START
+========================================================= */
+
 init();
+
