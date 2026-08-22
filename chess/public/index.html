@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    >
+
+    <meta
+        name="theme-color"
+        content="#111318"
+    >
+
+    <title>Chess Party</title>
+
+    <meta
+        name="description"
+        content="Chess Party — AI, multiplayer, spectators, chat and chess clocks."
+    >
+
+    <link
+        rel="stylesheet"
+        href="/styles.css"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet"
+    >
+</head>
+
+<body>
+
+<div class="app">
+
+    <header class="topbar">
+
+        <div class="brand">
+
+            <div class="brand-icon">
+                ♟
+            </div>
+
+            <div>
+                <strong>
+                    Chess Party
+                </strong>
+
+                <span>
+                    Play. Think. Win.
+                </span>
+            </div>
+
+        </div>
+
+        <div class="top-status">
+
+            <span
+                id="modeBadge"
+                class="badge"
+            >
+                AI Arena
+            </span>
+
+            <span
+                id="connectionBadge"
+                class="badge muted"
+            >
+                Solo
+            </span>
+
+        </div>
+
+    </header>
+
+
+    <main class="layout">
+
+        <section class="game-area">
+
+            <div class="players-row">
+
+                <div class="player-card">
+
+                    <div class="avatar black">
+                        ♟
+                    </div>
+
+                    <div class="player-info">
+
+                        <span class="player-side">
+                            BLACK
+                        </span>
+
+                        <strong id="blackPlayerLabel">
+                            Computer
+                        </strong>
+
+                    </div>
+
+                    <div
+                        id="blackClock"
+                        class="clock"
+                    >
+                        00:00
+                    </div>
+
+                </div>
+
+
+                <div class="vs">
+                    VS
+                </div>
+
+
+                <div class="player-card">
+
+                    <div class="avatar white">
+                        ♙
+                    </div>
+
+                    <div class="player-info">
+
+                        <span class="player-side">
+                            WHITE
+                        </span>
+
+                        <strong id="whitePlayerLabel">
+                            You
+                        </strong>
+
+                    </div>
+
+                    <div
+                        id="whiteClock"
+                        class="clock active"
+                    >
+                        00:00
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="board-wrapper">
+
+                <div
+                    id="board"
+                    class="board"
+                    aria-label="Chess board"
+                ></div>
+
+            </div>
+
+
+            <div class="game-status panel">
+
+                <div>
+
+                    <span class="small-label">
+                        STATUS
+                    </span>
+
+                    <strong id="statusMessage">
+                        White to move
+                    </strong>
+
+                </div>
+
+                <span
+                    id="turnBadge"
+                    class="turn-badge"
+                >
+                    White to move
+                </span>
+
+            </div>
+
+
+            <div class="game-actions">
+
+                <button
+                    id="resignButton"
+                    class="action-button danger"
+                    type="button"
+                >
+                    🏳
+                    <span>
+                        Сдаться
+                    </span>
+                </button>
+
+                <button
+                    id="drawButton"
+                    class="action-button draw"
+                    type="button"
+                >
+                    🤝
+                    <span>
+                        Предложить ничью
+                    </span>
+                </button>
+
+                <button
+                    id="rematchButton"
+                    class="action-button"
+                    type="button"
+                >
+                    🔄
+                    <span>
+                        Реванш
+                    </span>
+                </button>
+
+                <button
+                    id="flipBoardButton"
+                    class="action-button"
+                    type="button"
+                >
+                    ↻
+                    <span>
+                        Перевернуть
+                    </span>
+                </button>
+
+            </div>
+
+
+            <div
+                id="drawRequest"
+                class="draw-request hidden"
+            >
+
+                <div>
+
+                    <strong>
+                        Предложена ничья
+                    </strong>
+
+                    <span id="drawRequestName">
+                        Player предлагает ничью
+                    </span>
+
+                </div>
+
+                <div class="draw-buttons">
+
+                    <button
+                        id="acceptDrawButton"
+                        class="primary-button"
+                        type="button"
+                    >
+                        Принять
+                    </button>
+
+                    <button
+                        id="declineDrawButton"
+                        class="secondary-button"
+                        type="button"
+                    >
+                        Отклонить
+                    </button>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <aside class="sidebar">
+
+
+            <section class="panel">
+
+                <div class="section-title">
+
+                    <span class="eyebrow">
+                        GAME MODE
+                    </span>
+
+                    <h2>
+                        Choose your game
+                    </h2>
+
+                </div>
+
+
+                <div class="mode-buttons">
+
+                    <button
+                        id="modeAiButton"
+                        class="mode-button active"
+                        type="button"
+                    >
+                        <span class="mode-icon">
+                            🤖
+                        </span>
+
+                        <span>
+                            <strong>
+                                AI
+                            </strong>
+
+                            <small>
+                                Play computer
+                            </small>
+                        </span>
+                    </button>
+
+
+                    <button
+                        id="modePartyButton"
+                        class="mode-button"
+                        type="button"
+                    >
+                        <span class="mode-icon">
+                            👥
+                        </span>
+
+                        <span>
+                            <strong>
+                                Party
+                            </strong>
+
+                            <small>
+                                Play with people
+                            </small>
+                        </span>
+                    </button>
+
+                </div>
+
+
+                <label class="field">
+
+                    <span>
+                        Your name
+                    </span>
+
+                    <input
+                        id="playerNameInput"
+                        maxlength="24"
+                        placeholder="Enter your name"
+                    >
+
+                </label>
+
+
+                <div
+                    id="aiControls"
+                    class="controls"
+                >
+
+                    <div class="field-grid">
+
+                        <label class="field">
+
+                            <span>
+                                AI level
+                            </span>
+
+                            <select id="aiLevelSelect">
+
+                                <option value="easy">
+                                    Easy
+                                </option>
+
+                                <option
+                                    value="intermediate"
+                                    selected
+                                >
+                                    Intermediate
+                                </option>
+
+                                <option value="hard">
+                                    Hard
+                                </option>
+
+                                <option value="expert">
+                                    Expert
+                                </option>
+
+                            </select>
+
+                        </label>
+
+
+                        <label class="field">
+
+                            <span>
+                                Play as
+                            </span>
+
+                            <select id="playerColorSelect">
+
+                                <option value="w">
+                                    White
+                                </option>
+
+                                <option value="b">
+                                    Black
+                                </option>
+
+                            </select>
+
+                        </label>
+
+                    </div>
+
+
+                    <label class="field">
+
+                        <span>
+                            Time control
+                        </span>
+
+                        <select id="aiClockSelect">
+
+                            <option value="1+0">
+                                Bullet · 1+0
+                            </option>
+
+                            <option value="3+2">
+                                Blitz · 3+2
+                            </option>
+
+                            <option value="5+3">
+                                Blitz · 5+3
+                            </option>
+
+                            <option
+                                value="10+0"
+                                selected
+                            >
+                                Rapid · 10+0
+                            </option>
+
+                            <option value="15+10">
+                                Rapid · 15+10
+                            </option>
+
+                            <option value="30+20">
+                                Classical · 30+20
+                            </option>
+
+                            <option value="none">
+                                Без часов
+                            </option>
+
+                        </select>
+
+                    </label>
+
+
+                    <button
+                        id="startAiButton"
+                        class="primary-button large"
+                        type="button"
+                    >
+                        New AI Game
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="partyControls"
+                    class="controls hidden"
+                >
+
+                    <label class="field">
+
+                        <span>
+                            Time control
+                        </span>
+
+                        <select id="partyClockSelect">
+
+                            <option value="1+0">
+                                Bullet · 1+0
+                            </option>
+
+                            <option value="3+2">
+                                Blitz · 3+2
+                            </option>
+
+                            <option value="5+3">
+                                Blitz · 5+3
+                            </option>
+
+                            <option
+                                value="10+0"
+                                selected
+                            >
+                                Rapid · 10+0
+                            </option>
+
+                            <option value="15+10">
+                                Rapid · 15+10
+                            </option>
+
+                            <option value="30+20">
+                                Classical · 30+20
+                            </option>
+
+                            <option value="none">
+                                Без часов
+                            </option>
+
+                        </select>
+
+                    </label>
+
+
+                    <button
+                        id="createPartyButton"
+                        class="primary-button large"
+                        type="button"
+                    >
+                        Create Party
+                    </button>
+
+
+                    <div class="join-box">
+
+                        <input
+                            id="partyCodeInput"
+                            maxlength="6"
+                            placeholder="PARTY CODE"
+                        >
+
+                        <button
+                            id="joinPartyButton"
+                            class="secondary-button"
+                            type="button"
+                        >
+                            Join
+                        </button>
+
+                    </div>
+
+
+                    <button
+                        id="copyInviteButton"
+                        class="secondary-button hidden full"
+                        type="button"
+                    >
+                        🔗 Copy Invite
+                    </button>
+
+
+                    <button
+                        id="leavePartyButton"
+                        class="ghost-button hidden"
+                        type="button"
+                    >
+                        Leave Party
+                    </button>
+
+
+                    <div
+                        id="partySummary"
+                        class="party-summary"
+                    >
+                        Create a party to play with another person.
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <section class="panel">
+
+                <div class="section-title">
+
+                    <span class="eyebrow">
+                        PARTY
+                    </span>
+
+                    <h2>
+                        Players & spectators
+                    </h2>
+
+                </div>
+
+
+                <div class="roster">
+
+                    <div class="roster-item">
+
+                        <span class="piece-dot white-dot">
+                            ♙
+                        </span>
+
+                        <div>
+
+                            <small>
+                                WHITE
+                            </small>
+
+                            <strong id="rosterWhite">
+                                You
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="roster-item">
+
+                        <span class="piece-dot black-dot">
+                            ♟
+                        </span>
+
+                        <div>
+
+                            <small>
+                                BLACK
+                            </small>
+
+                            <strong id="rosterBlack">
+                                Computer
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="spectator-header">
+
+                    <span>
+                        👁 Spectators
+                    </span>
+
+                    <strong id="spectatorCount">
+                        0 / 20
+                    </strong>
+
+                </div>
+
+
+                <ul
+                    id="spectatorList"
+                    class="spectator-list"
+                >
+                    <li>
+                        No spectators yet
+                    </li>
+                </ul>
+
+            </section>
+
+
+            <section
+                id="chatPanel"
+                class="panel chat-panel"
+            >
+
+                <div class="section-title">
+
+                    <span class="eyebrow">
+                        LIVE CHAT
+                    </span>
+
+                    <h2>
+                        💬 Room chat
+                    </h2>
+
+                </div>
+
+
+                <div
+                    id="chatMessages"
+                    class="chat-messages"
+                >
+
+                    <div class="chat-empty">
+                        Chat becomes available in Party mode.
+                    </div>
+
+                </div>
+
+
+                <form
+                    id="chatForm"
+                    class="chat-form"
+                >
+
+                    <input
+                        id="chatInput"
+                        maxlength="300"
+                        autocomplete="off"
+                        placeholder="Write a message..."
+                    >
+
+                    <button
+                        type="submit"
+                        class="send-button"
+                    >
+                        →
+                    </button>
+
+                </form>
+
+            </section>
+
+        </aside>
+
+    </main>
+
+
+    <footer class="footer">
+
+        <span>
+            ♟ Chess Party
+        </span>
+
+        <span>
+            AI · Multiplayer · Chat · Chess Clock
+        </span>
+
+    </footer>
+
+</div>
+
+
+<div
+    id="promotionDialog"
+    class="modal hidden"
+>
+
+    <div class="modal-card">
+
+        <span class="eyebrow">
+            PROMOTION
+        </span>
+
+        <h2>
+            Choose a piece
+        </h2>
+
+        <div
+            id="promotionOptions"
+            class="promotion-options"
+        ></div>
+
+    </div>
+
+</div>
+
+
+<div
+    id="toastHost"
+    class="toast-host"
+></div>
+
+
+<script
+    type="module"
+    src="/js/app.js"
+></script>
+
+</body>
+</html>
