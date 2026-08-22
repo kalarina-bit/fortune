@@ -2,1277 +2,476 @@ import crypto from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import express from "express";
-
 import { ChessEngine } from "./shared/chess-engine.js";
-
-/* =========================================================
-   PATHS
-========================================================= */
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 const PUBLIC_DIR = path.join(__dirname, "public");
 const SHARED_DIR = path.join(__dirname, "shared");
-
 const PORT = Number(process.env.PORT || 3015);
 
-/* =========================================================
-   SERVER
-========================================================= */
-
 const app = express();
-
 app.disable("x-powered-by");
-
 app.use(express.json({ limit: "32kb" }));
-
-app.use(express.static(PUBLIC_DIR, {
-    extensions: ["html"],
-    maxAge: "1h",
-}));
-
-app.use("/shared", express.static(SHARED_DIR, {
-    maxAge: "1h",
-}));
-
-/* =========================================================
-   CONFIG
-========================================================= */
+app.use(express.static(PUBLIC_DIR, { extensions: ["html"], maxAge: "1h" }));
+app.use("/shared", express.static(SHARED_DIR, { maxAge: "1h" }));
 
 const MAX_SPECTATORS = 20;
+const MAX_CHAT = 100;
 
 const TIME_CONTROLS = {
-    none: {
-        key: "none",
-        label: "Без часов",
-        initial: 0,
-        increment: 0,
-    },
-
-    "1+0": {
-        key: "1+0",
-        label: "1 + 0 • Bullet",
-        initial: 60,
-        increment: 0,
-    },
-
-    "3+0": {
-        key: "3+0",
-        label: "3 + 0 • Blitz",
-        initial: 180,
-        increment: 0,
-    },
-
-    "3+2": {
-        key: "3+2",
-        label: "3 + 2 • Blitz",
-        initial: 180,
-        increment: 2,
-    },
-
-    "5+0": {
-        key: "5+0",
-        label: "5 + 0 • Blitz",
-        initial: 300,
-        increment: 0,
-    },
-
-    "5+3": {
-        key: "5+3",
-        label: "5 + 3 • Blitz",
-        initial: 300,
-        increment: 3,
-    },
-
-    "10+0": {
-        key: "10+0",
-        label: "10 + 0 • Rapid",
-        initial: 600,
-        increment: 0,
-    },
-
-    "15+10": {
-        key: "15+10",
-        label: "15 + 10 • Rapid",
-        initial: 900,
-        increment: 10,
-    },
-
-    "30+0": {
-        key: "30+0",
-        label: "30 + 0 • Classical",
-        initial: 1800,
-        increment: 0,
-    },
-
-    "30+20": {
-        key: "30+20",
-        label: "30 + 20 • Classical",
-        initial: 1800,
-        increment: 20,
-    },
+  none: { key: "none", label: "Без часов", initial: 0, increment: 0 },
+  "1+0": { key: "1+0", label: "1 + 0 • Bullet", initial: 60, increment: 0 },
+  "3+0": { key: "3+0", label: "3 + 0 • Blitz", initial: 180, increment: 0 },
+  "3+2": { key: "3+2", label: "3 + 2 • Blitz", initial: 180, increment: 2 },
+  "5+0": { key: "5+0", label: "5 + 0 • Blitz", initial: 300, increment: 0 },
+  "5+3": { key: "5+3", label: "5 + 3 • Blitz", initial: 300, increment: 3 },
+  "10+0": { key: "10+0", label: "10 + 0 • Rapid", initial: 600, increment: 0 },
+  "15+10": { key: "15+10", label: "15 + 10 • Rapid", initial: 900, increment: 10 },
+  "30+0": { key: "30+0", label: "30 + 0 • Classical", initial: 1800, increment: 0 },
+  "30+20": { key: "30+20", label: "30 + 20 • Classical", initial: 1800, increment: 20 }
 };
-
-/* =========================================================
-   STORAGE
-========================================================= */
 
 const parties = new Map();
 
-/* =========================================================
-   HELPERS
-========================================================= */
+const safeName = (value) => {
+  const name = String(value ?? "").trim().replace(/[<>]/g, "").slice(0, 24);
+  return name || "Guest";
+};
 
-function safeName(name) {
-    const value = typeof name === "string"
-        ? name.trim()
-        : "";
+const normalizeCode = (value) => String(value ?? "").trim().toUpperCase();
 
-    if (!value) {
-        return "Guest";
-    }
+const clientId = () => crypto.randomUUID();
 
-    return value
-        .replace(/[<>]/g, "")
-        .slice(0, 24);
-}
-
-function normalizeCode(code) {
-    return String(code || "")
-        .trim()
-        .toUpperCase();
-}
-
-function getTimeControl(key) {
-    return TIME_CONTROLS[key] || TIME_CONTROLS["10+0"];
-}
-
-function createClientId() {
-    return crypto.randomUUID();
-}
-
-function createPartyCode() {
-    const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-
-    let code;
-
-    do {
-        code = "";
-
-        for (let i = 0; i < 6; i++) {
-            code += alphabet[
-                crypto.randomInt(0, alphabet.length)
-            ];
-        }
-    } while (parties.has(code));
-
-    return code;
+function partyCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code;
+  do {
+    code = Array.from({ length: 6 }, () =>
+      alphabet[crypto.randomInt(0, alphabet.length)]
+    ).join("");
+  } while (parties.has(code));
+  return code;
 }
 
 function getParty(code) {
-    const party = parties.get(normalizeCode(code));
-
-    if (!party) {
-        throw new Error("Party not found.");
-    }
-
-    return party;
+  const party = parties.get(normalizeCode(code));
+  if (!party) throw new Error("Комната не найдена.");
+  return party;
 }
 
-function getParticipant(party, clientId) {
-    if (!clientId) {
-        return null;
-    }
-
-    return party.participants.get(clientId) || null;
+function participant(party, id) {
+  return party.participants.get(String(id || "")) || null;
 }
 
-function getPlayer(party, role) {
-    for (const participant of party.participants.values()) {
-        if (participant.role === role) {
-            return participant;
-        }
-    }
-
-    return null;
+function player(party, role) {
+  for (const p of party.participants.values()) {
+    if (p.role === role) return p;
+  }
+  return null;
 }
 
-function getOpponentRole(role) {
-    return role === "white"
-        ? "black"
-        : "white";
+function roleColor(role) {
+  return role === "white" ? "w" : "b";
 }
 
-function roleToColor(role) {
-    return role === "white"
-        ? "w"
-        : "b";
+function colorRole(color) {
+  return color === "w" ? "white" : "black";
 }
 
-function colorToRole(color) {
-    return color === "w"
-        ? "white"
-        : "black";
-}
-
-function countSpectators(party) {
-    let count = 0;
-
-    for (const participant of party.participants.values()) {
-        if (participant.role === "spectator") {
-            count++;
-        }
-    }
-
-    return count;
-}
-
-/* =========================================================
-   CLOCKS
-========================================================= */
-
-function createClocks(timeControl) {
-    return {
-        white: timeControl.initial,
-        black: timeControl.initial,
-
-        running: false,
-
-        lastTick: Date.now(),
-
-        turn: "w",
-    };
+function makeClocks(tc) {
+  return {
+    white: tc.initial,
+    black: tc.initial,
+    running: false,
+    lastTick: Date.now()
+  };
 }
 
 function updateClock(party) {
-    const clocks = party.clocks;
+  if (!party.clocks.running || !party.timeControl.initial || party.gameOverReason) return;
 
-    if (!clocks) {
-        return;
-    }
+  const now = Date.now();
+  const elapsed = Math.max(0, (now - party.clocks.lastTick) / 1000);
+  const side = colorRole(party.engine.state.turn);
 
-    if (party.timeControl.initial <= 0) {
-        return;
-    }
+  party.clocks[side] = Math.max(0, party.clocks[side] - elapsed);
+  party.clocks.lastTick = now;
 
-    if (!clocks.running) {
-        return;
-    }
-
-    if (party.gameOverReason) {
-        return;
-    }
-
-    const now = Date.now();
-
-    const elapsed =
-        (now - clocks.lastTick) / 1000;
-
-    if (elapsed <= 0) {
-        return;
-    }
-
-    const role = colorToRole(
-        party.engine.state.turn
-    );
-
-    clocks[role] = Math.max(
-        0,
-        clocks[role] - elapsed
-    );
-
-    clocks.lastTick = now;
-    clocks.turn = party.engine.state.turn;
-
-    if (clocks[role] <= 0) {
-        const winnerColor = roleToColor(
-            getOpponentRole(role)
-        );
-
-        setGameOver(
-            party,
-            "timeout",
-            winnerColor
-        );
-    }
+  if (party.clocks[side] <= 0) {
+    party.clocks.running = false;
+    party.gameOverReason = "timeout";
+    party.winner = side === "w" ? "b" : "w";
+  }
 }
 
 function startClockIfReady(party) {
-    if (party.timeControl.initial <= 0) {
-        return;
-    }
+  if (!party.timeControl.initial || party.gameOverReason) return;
+  if (!player(party, "white") || !player(party, "black")) return;
 
-    if (party.gameOverReason) {
-        return;
-    }
-
-    const white = getPlayer(
-        party,
-        "white"
-    );
-
-    const black = getPlayer(
-        party,
-        "black"
-    );
-
-    if (!white || !black) {
-        return;
-    }
-
-    if (!clocksCanRun(party)) {
-        return;
-    }
-
-    party.clocks.running = true;
-    party.clocks.lastTick = Date.now();
-    party.clocks.turn = party.engine.state.turn;
-}
-
-function clocksCanRun(party) {
-    return Boolean(
-        party.clocks &&
-        !party.gameOverReason &&
-        getPlayer(party, "white") &&
-        getPlayer(party, "black")
-    );
+  party.clocks.running = true;
+  party.clocks.lastTick = Date.now();
 }
 
 function applyMoveClock(party, movingRole) {
-    if (party.timeControl.initial <= 0) {
-        return;
-    }
+  if (!party.timeControl.initial || party.gameOverReason) return;
 
-    const clocks = party.clocks;
+  updateClock(party);
+  if (party.gameOverReason) return;
 
-    updateClock(party);
-
-    if (party.gameOverReason) {
-        return;
-    }
-
-    clocks[movingRole] +=
-        party.timeControl.increment;
-
-    clocks.turn = party.engine.state.turn;
-    clocks.lastTick = Date.now();
-    clocks.running = true;
+  party.clocks[movingRole] += party.timeControl.increment;
+  party.clocks.lastTick = Date.now();
+  party.clocks.running = true;
 }
 
-function getClockSnapshot(party) {
-    updateClock(party);
-
-    return {
-        white: Math.max(
-            0,
-            Number(party.clocks.white) || 0
-        ),
-
-        black: Math.max(
-            0,
-            Number(party.clocks.black) || 0
-        ),
-
-        running: Boolean(
-            party.clocks.running
-        ),
-
-        turn: party.engine.state.turn,
-    };
+function resetGame(party) {
+  party.engine = new ChessEngine();
+  party.clocks = makeClocks(party.timeControl);
+  party.gameOverReason = null;
+  party.winner = null;
+  party.drawOffer = null;
+  party.gameNumber += 1;
+  startClockIfReady(party);
 }
 
-/* =========================================================
-   GAME STATE
-========================================================= */
-
-function getEngineStatus(party) {
-    return (
-        party.engine.state.status ||
-        ChessEngine.evaluateStatus(
-            party.engine.state
-        )
-    );
+function serializeParticipant(p) {
+  return {
+    id: p.id,
+    name: p.name,
+    role: p.role,
+    connected: Boolean(p.connected)
+  };
 }
 
-function setGameOver(
-    party,
-    reason,
-    winner = null
-) {
-    if (party.gameOverReason) {
-        return;
-    }
-
-    party.gameOverReason = reason;
-    party.winner = winner;
-
-    party.clocks.running = false;
-
-    broadcastParty(party);
-}
-
-function updateGameResult(party) {
-    if (party.gameOverReason) {
-        return;
-    }
-
-    const status = getEngineStatus(party);
-
-    if (!status) {
-        return;
-    }
-
-    if (status.phase === "checkmate") {
-        setGameOver(
-            party,
-            "checkmate",
-            party.engine.state.turn === "w"
-                ? "b"
-                : "w"
-        );
-
-        return;
-    }
-
-    if (status.phase === "draw") {
-        setGameOver(
-            party,
-            "draw",
-            null
-        );
-    }
-}
-
-/* =========================================================
-   SERIALIZATION
-========================================================= */
-
-function serializeParticipant(participant) {
-    return {
-        id: participant.id,
-        name: participant.name,
-        role: participant.role,
-        connected: participant.connected,
-    };
-}
-
-function serializeParty(party, clientId = null) {
-    updateClock(party);
-
-    const players = {
-        white: null,
-        black: null,
-    };
-
-    const spectators = [];
-
-    for (const participant of party.participants.values()) {
-        if (participant.role === "white") {
-            players.white =
-                serializeParticipant(participant);
-        }
-
-        if (participant.role === "black") {
-            players.black =
-                serializeParticipant(participant);
-        }
-
-        if (participant.role === "spectator") {
-            spectators.push(
-                serializeParticipant(participant)
-            );
-        }
-    }
-
-    const you = getParticipant(
-        party,
-        clientId
-    );
-
-    return {
-        code: party.code,
-
-        game: party.engine.getSnapshot(),
-
-        players,
-
-        spectators,
-
-        spectatorCount: spectators.length,
-
-        maxSpectators: MAX_SPECTATORS,
-
-        timeControl: {
-            key: party.timeControl.key,
-            label: party.timeControl.label,
-            initial: party.timeControl.initial,
-            increment: party.timeControl.increment,
-        },
-
-        clocks: getClockSnapshot(party),
-
-        gameOverReason:
-            party.gameOverReason || null,
-
-        winner:
-            party.winner || null,
-
-        you: you
-            ? {
-                id: you.id,
-                name: you.name,
-                role: you.role,
-            }
-            : null,
-    };
-}
-
-/* =========================================================
-   SSE
-========================================================= */
-
-function sendSSE(res, event, data) {
-    try {
-        res.write(
-            `event: ${event}\n` +
-            `data: ${JSON.stringify(data)}\n\n`
-        );
-    } catch {
-        // Connection already closed.
-    }
-}
-
-function broadcastParty(party) {
-    const clients = party.sseClients;
-
-    if (!clients.size) {
-        return;
-    }
-
-    for (const client of clients) {
-        sendSSE(
-            client.res,
-            "party",
-            serializeParty(
-                party,
-                client.id
-            )
-        );
-    }
-}
-
-function addSSEClient(
-    party,
-    clientId,
-    res
-) {
-    const client = {
-        id: clientId,
-        res,
-    };
-
-    party.sseClients.add(client);
-
-    return client;
-}
-
-function removeSSEClient(
-    party,
-    client
-) {
-    party.sseClients.delete(client);
-}
-
-/* =========================================================
-   PARTICIPANT CONNECTION
-========================================================= */
-
-function disconnectParticipant(
-    party,
-    clientId
-) {
-    const participant =
-        getParticipant(
-            party,
-            clientId
-        );
-
-    if (!participant) {
-        return;
-    }
-
-    participant.connected = false;
-
-    broadcastParty(party);
-}
-
-function cleanupEmptyParty(party) {
-    const hasConnectedPlayer =
-        [...party.participants.values()]
-            .some(
-                p =>
-                    p.role !== "spectator" &&
-                    p.connected
-            );
-
-    const hasConnectedSpectator =
-        [...party.participants.values()]
-            .some(
-                p =>
-                    p.role === "spectator" &&
-                    p.connected
-            );
-
-    if (
-        !hasConnectedPlayer &&
-        !hasConnectedSpectator &&
-        party.sseClients.size === 0
-    ) {
-        parties.delete(party.code);
-    }
-}
-
-/* =========================================================
-   CREATE PARTY
-========================================================= */
-
-app.post(
-    "/api/party/create",
-    (req, res) => {
-        try {
-            const name = safeName(
-                req.body?.name
-            );
-
-            const timeControl =
-                getTimeControl(
-                    req.body?.timeControl
-                );
-
-            const code =
-                createPartyCode();
-
-            const clientId =
-                createClientId();
-
-            const engine =
-                new ChessEngine();
-
-            const party = {
-                code,
-
-                engine,
-
-                timeControl,
-
-                clocks:
-                    createClocks(
-                        timeControl
-                    ),
-
-                gameOverReason: null,
-
-                winner: null,
-
-                participants:
-                    new Map(),
-
-                sseClients:
-                    new Set(),
-            };
-
-            party.participants.set(
-                clientId,
-                {
-                    id: clientId,
-                    name,
-                    role: "white",
-                    connected: true,
-                }
-            );
-
-            parties.set(
-                code,
-                party
-            );
-
-            res.json({
-                ok: true,
-
-                party:
-                    serializeParty(
-                        party,
-                        clientId
-                    ),
-            });
-        } catch (error) {
-            res.status(400).json({
-                ok: false,
-                error:
-                    error.message ||
-                    "Unable to create party.",
-            });
-        }
-    }
-);
-
-/* =========================================================
-   JOIN PARTY
-========================================================= */
-
-app.post(
-    "/api/party/join",
-    (req, res) => {
-        try {
-            const code =
-                normalizeCode(
-                    req.body?.partyCode
-                );
-
-            const name =
-                safeName(
-                    req.body?.name
-                );
-
-            const party =
-                getParty(code);
-
-            let clientId =
-                String(
-                    req.body?.clientId ||
-                    ""
-                ).trim();
-
-            let participant =
-                getParticipant(
-                    party,
-                    clientId
-                );
-
-            /*
-             * Reconnect existing client.
-             */
-            if (participant) {
-                participant.name = name;
-                participant.connected = true;
-            } else {
-                clientId =
-                    createClientId();
-
-                let role = "spectator";
-
-                if (
-                    !getPlayer(
-                        party,
-                        "white"
-                    )
-                ) {
-                    role = "white";
-                } else if (
-                    !getPlayer(
-                        party,
-                        "black"
-                    )
-                ) {
-                    role = "black";
-                } else if (
-                    countSpectators(party) >=
-                    MAX_SPECTATORS
-                ) {
-                    return res.status(403).json({
-                        ok: false,
-                        error:
-                            "Spectator limit reached.",
-                    });
-                }
-
-                participant = {
-                    id: clientId,
-                    name,
-                    role,
-                    connected: true,
-                };
-
-                party.participants.set(
-                    clientId,
-                    participant
-                );
-            }
-
-            startClockIfReady(party);
-
-            broadcastParty(party);
-
-            res.json({
-                ok: true,
-
-                party:
-                    serializeParty(
-                        party,
-                        clientId
-                    ),
-            });
-        } catch (error) {
-            res.status(400).json({
-                ok: false,
-                error:
-                    error.message ||
-                    "Unable to join party.",
-            });
-        }
-    }
-);
-
-/* =========================================================
-   MOVE
-========================================================= */
-
-app.post(
-    "/api/party/move",
-    (req, res) => {
-        try {
-            const {
-                partyCode,
-                clientId,
-                from,
-                to,
-                promotion,
-            } = req.body || {};
-
-            const party =
-                getParty(
-                    partyCode
-                );
-
-            const participant =
-                getParticipant(
-                    party,
-                    clientId
-                );
-
-            if (!participant) {
-                return res.status(403).json({
-                    ok: false,
-                    error:
-                        "Player session not found.",
-                });
-            }
-
-            if (
-                participant.role !== "white" &&
-                participant.role !== "black"
-            ) {
-                return res.status(403).json({
-                    ok: false,
-                    error:
-                        "Spectators cannot make moves.",
-                });
-            }
-
-            if (party.gameOverReason) {
-                return res.status(400).json({
-                    ok: false,
-                    error:
-                        "Game is already over.",
-                    party:
-                        serializeParty(
-                            party,
-                            clientId
-                        ),
-                });
-            }
-
-            const playerColor =
-                roleToColor(
-                    participant.role
-                );
-
-            if (
-                party.engine.state.turn !==
-                playerColor
-            ) {
-                return res.status(400).json({
-                    ok: false,
-                    error:
-                        "It is not your turn.",
-                });
-            }
-
-            updateClock(party);
-
-            if (party.gameOverReason) {
-                return res.status(400).json({
-                    ok: false,
-                    error:
-                        "Time has expired.",
-                    party:
-                        serializeParty(
-                            party,
-                            clientId
-                        ),
-                });
-            }
-
-            const result =
-                party.engine.makeMove({
-                    from,
-                    to,
-                    promotion:
-                        promotion || null,
-                });
-
-            if (!result?.ok) {
-                return res.status(400).json({
-                    ok: false,
-                    error:
-                        result?.error ||
-                        "Illegal move.",
-                });
-            }
-
-            applyMoveClock(
-                party,
-                participant.role
-            );
-
-            updateGameResult(party);
-
-            broadcastParty(party);
-
-            res.json({
-                ok: true,
-
-                party:
-                    serializeParty(
-                        party,
-                        clientId
-                    ),
-            });
-        } catch (error) {
-            res.status(400).json({
-                ok: false,
-                error:
-                    error.message ||
-                    "Move failed.",
-            });
-        }
-    }
-);
-
-/* =========================================================
-   PARTY EVENTS / SSE
-========================================================= */
-
-app.get(
-    "/api/party/events",
-    (req, res) => {
-        try {
-            const partyCode =
-                normalizeCode(
-                    req.query?.partyCode
-                );
-
-            const clientId =
-                String(
-                    req.query?.clientId ||
-                    ""
-                ).trim();
-
-            const party =
-                getParty(
-                    partyCode
-                );
-
-            const participant =
-                getParticipant(
-                    party,
-                    clientId
-                );
-
-            if (!participant) {
-                return res.status(403).end();
-            }
-
-            res.setHeader(
-                "Content-Type",
-                "text/event-stream"
-            );
-
-            res.setHeader(
-                "Cache-Control",
-                "no-cache, no-transform"
-            );
-
-            res.setHeader(
-                "Connection",
-                "keep-alive"
-            );
-
-            res.setHeader(
-                "X-Accel-Buffering",
-                "no"
-            );
-
-            if (
-                typeof res.flushHeaders ===
-                "function"
-            ) {
-                res.flushHeaders();
-            }
-
-            const client =
-                addSSEClient(
-                    party,
-                    clientId,
-                    res
-                );
-
-            participant.connected = true;
-
-            sendSSE(
-                res,
-                "party",
-                serializeParty(
-                    party,
-                    clientId
-                )
-            );
-
-            broadcastParty(party);
-
-            const heartbeat =
-                setInterval(() => {
-                    try {
-                        res.write(": ping\n\n");
-                    } catch {
-                        clearInterval(
-                            heartbeat
-                        );
-                    }
-                }, 15000);
-
-            req.on(
-                "close",
-                () => {
-                    clearInterval(
-                        heartbeat
-                    );
-
-                    removeSSEClient(
-                        party,
-                        client
-                    );
-
-                    disconnectParticipant(
-                        party,
-                        clientId
-                    );
-
-                    cleanupEmptyParty(
-                        party
-                    );
-                }
-            );
-        } catch {
-            res.status(404).end();
-        }
-    }
-);
-
-/* =========================================================
-   LEAVE PARTY
-========================================================= */
-
-app.post(
-    "/api/party/leave",
-    (req, res) => {
-        try {
-            const party =
-                getParty(
-                    req.body?.partyCode
-                );
-
-            const clientId =
-                String(
-                    req.body?.clientId ||
-                    ""
-                ).trim();
-
-            const participant =
-                getParticipant(
-                    party,
-                    clientId
-                );
-
-            if (!participant) {
-                return res.json({
-                    ok: true,
-                });
-            }
-
-            /*
-             * Полностью удаляем spectator.
-             */
-            if (
-                participant.role ===
-                "spectator"
-            ) {
-                party.participants.delete(
-                    clientId
-                );
-            } else {
-                /*
-                 * Игрок остаётся в комнате,
-                 * но считается отключённым.
-                 * Это позволяет переподключиться.
-                 */
-                participant.connected = false;
-            }
-
-            broadcastParty(party);
-
-            cleanupEmptyParty(
-                party
-            );
-
-            res.json({
-                ok: true,
-            });
-        } catch (error) {
-            res.status(400).json({
-                ok: false,
-                error:
-                    error.message ||
-                    "Unable to leave party.",
-            });
-        }
-    }
-);
-
-/* =========================================================
-   CLOCK TICK
-========================================================= */
-
-/*
- * Серверные часы должны продолжать идти,
- * даже если клиент ничего не отправляет.
- *
- * Поэтому один лёгкий глобальный таймер
- * проверяет активные Party.
- */
-
-const clockTimer = setInterval(
-    () => {
-        for (const party of parties.values()) {
-            if (
-                party.timeControl.initial <= 0
-            ) {
-                continue;
-            }
-
-            if (
-                !party.clocks.running
-            ) {
-                continue;
-            }
-
-            if (
-                party.gameOverReason
-            ) {
-                continue;
-            }
-
-            const beforeWhite =
-                party.clocks.white;
-
-            const beforeBlack =
-                party.clocks.black;
-
-            updateClock(party);
-
-            /*
-             * Отправляем обновление только
-             * если часы действительно изменились.
-             */
-            if (
-                beforeWhite !==
-                    party.clocks.white ||
-                beforeBlack !==
-                    party.clocks.black
-            ) {
-                broadcastParty(
-                    party
-                );
-            }
-        }
+function serializeParty(party, me = null) {
+  updateClock(party);
+
+  const players = { white: null, black: null };
+  const spectators = [];
+
+  for (const p of party.participants.values()) {
+    if (p.role === "white") players.white = serializeParticipant(p);
+    else if (p.role === "black") players.black = serializeParticipant(p);
+    else spectators.push(serializeParticipant(p));
+  }
+
+  const you = participant(party, me);
+
+  return {
+    code: party.code,
+    gameNumber: party.gameNumber,
+    game: party.engine.getSnapshot(),
+    players,
+    spectators,
+    spectatorCount: spectators.length,
+    maxSpectators: MAX_SPECTATORS,
+    timeControl: party.timeControl,
+    clocks: {
+      white: Math.max(0, party.clocks.white),
+      black: Math.max(0, party.clocks.black),
+      running: Boolean(party.clocks.running),
+      turn: party.engine.state.turn
     },
-    1000
-);
-
-/* =========================================================
-   CLEANUP
-========================================================= */
-
-function shutdown() {
-    clearInterval(
-        clockTimer
-    );
-
-    for (const party of parties.values()) {
-        for (const client of party.sseClients) {
-            try {
-                client.res.end();
-            } catch {
-                // ignore
-            }
-        }
-
-        party.sseClients.clear();
-    }
-
-    parties.clear();
-
-    process.exit(0);
+    gameOverReason: party.gameOverReason || null,
+    winner: party.winner || null,
+    drawOffer: party.drawOffer
+      ? { from: party.drawOffer.from, name: party.drawOffer.name }
+      : null,
+    chat: party.chat.slice(-MAX_CHAT),
+    you: you ? { id: you.id, name: you.name, role: you.role } : null
+  };
 }
 
-process.on(
-    "SIGINT",
-    shutdown
-);
+function send(res, event, data) {
+  try {
+    res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+  } catch {}
+}
 
-process.on(
-    "SIGTERM",
-    shutdown
-);
+function broadcast(party) {
+  for (const c of party.sse) {
+    send(c.res, "party", serializeParty(party, c.id));
+  }
+}
 
-/* =========================================================
-   FALLBACK
-========================================================= */
+function createParty(name, timeControl) {
+  const tc = TIME_CONTROLS[timeControl] || TIME_CONTROLS["10+0"];
+  const code = partyCode();
+  const id = clientId();
 
-app.get(
-    "*",
-    (req, res) => {
-        res.sendFile(
-            path.join(
-                PUBLIC_DIR,
-                "index.html"
-            )
-        );
+  const party = {
+    code,
+    engine: new ChessEngine(),
+    timeControl: tc,
+    clocks: makeClocks(tc),
+    gameOverReason: null,
+    winner: null,
+    drawOffer: null,
+    gameNumber: 1,
+    participants: new Map(),
+    sse: new Set(),
+    chat: []
+  };
+
+  party.participants.set(id, {
+    id,
+    name: safeName(name),
+    role: "white",
+    connected: true
+  });
+
+  parties.set(code, party);
+  return { party, id };
+}
+
+function cleanup(party) {
+  const active = [...party.participants.values()].some(p => p.connected);
+  if (!active && party.sse.size === 0) parties.delete(party.code);
+}
+
+app.post("/api/party/create", (req, res) => {
+  try {
+    const { party, id } = createParty(req.body?.name, req.body?.timeControl);
+    res.json({ ok: true, party: serializeParty(party, id) });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+app.post("/api/party/join", (req, res) => {
+  try {
+    const code = normalizeCode(req.body?.partyCode);
+    const party = getParty(code);
+    const name = safeName(req.body?.name);
+    let id = String(req.body?.clientId || "").trim();
+    let p = participant(party, id);
+
+    if (p) {
+      p.name = name;
+      p.connected = true;
+    } else {
+      id = clientId();
+      let role = "spectator";
+      if (!player(party, "white")) role = "white";
+      else if (!player(party, "black")) role = "black";
+      else if (party.participants.size >= MAX_SPECTATORS + 2) {
+        return res.status(403).json({ ok: false, error: "Лимит зрителей достигнут." });
+      }
+
+      p = { id, name, role, connected: true };
+      party.participants.set(id, p);
     }
-);
 
-/* =========================================================
-   START
-========================================================= */
+    startClockIfReady(party);
+    broadcast(party);
+    res.json({ ok: true, party: serializeParty(party, id) });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
 
-app.listen(
-    PORT,
-    "0.0.0.0",
-    () => {
-        console.log(
-            `Chess server running on port ${PORT}`
-        );
+app.post("/api/party/move", (req, res) => {
+  try {
+    const party = getParty(req.body?.partyCode);
+    const p = participant(party, req.body?.clientId);
+
+    if (!p || !["white", "black"].includes(p.role)) {
+      return res.status(403).json({ ok: false, error: "Вы не игрок этой партии." });
     }
-);
+
+    updateClock(party);
+    if (party.gameOverReason) {
+      return res.status(400).json({
+        ok: false,
+        error: "Игра уже завершена.",
+        party: serializeParty(party, p.id)
+      });
+    }
+
+    const color = roleColor(p.role);
+    if (party.engine.state.turn !== color) {
+      return res.status(400).json({ ok: false, error: "Сейчас ход соперника." });
+    }
+
+    const result = party.engine.makeMove({
+      from: req.body?.from,
+      to: req.body?.to,
+      promotion: req.body?.promotion || "q"
+    });
+
+    if (!result.ok) {
+      return res.status(400).json({ ok: false, error: result.error });
+    }
+
+    applyMoveClock(party, p.role);
+
+    const status = party.engine.getStatus();
+    if (status.phase === "checkmate") {
+      party.gameOverReason = "checkmate";
+      party.winner = party.engine.state.turn === "w" ? "b" : "w";
+      party.clocks.running = false;
+    } else if (status.phase === "draw") {
+      party.gameOverReason = "draw";
+      party.winner = null;
+      party.clocks.running = false;
+    }
+
+    party.drawOffer = null;
+    broadcast(party);
+    res.json({ ok: true, party: serializeParty(party, p.id) });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+app.post("/api/party/rematch", (req, res) => {
+  try {
+    const party = getParty(req.body?.partyCode);
+    const p = participant(party, req.body?.clientId);
+    if (!p) return res.status(403).json({ ok: false, error: "Сессия не найдена." });
+
+    resetGame(party);
+    broadcast(party);
+    res.json({ ok: true, party: serializeParty(party, p.id) });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+app.post("/api/party/resign", (req, res) => {
+  try {
+    const party = getParty(req.body?.partyCode);
+    const p = participant(party, req.body?.clientId);
+    if (!p || !["white", "black"].includes(p.role)) {
+      return res.status(403).json({ ok: false, error: "Вы не игрок." });
+    }
+    if (party.gameOverReason) return res.json({ ok: true, party: serializeParty(party, p.id) });
+
+    party.gameOverReason = "resign";
+    party.winner = roleColor(p.role) === "w" ? "b" : "w";
+    party.clocks.running = false;
+    party.drawOffer = null;
+    broadcast(party);
+    res.json({ ok: true, party: serializeParty(party, p.id) });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+app.post("/api/party/draw", (req, res) => {
+  try {
+    const party = getParty(req.body?.partyCode);
+    const p = participant(party, req.body?.clientId);
+    if (!p || !["white", "black"].includes(p.role)) {
+      return res.status(403).json({ ok: false, error: "Вы не игрок." });
+    }
+    if (party.gameOverReason) return res.json({ ok: true, party: serializeParty(party, p.id) });
+
+    if (party.drawOffer && party.drawOffer.from !== p.id) {
+      party.gameOverReason = "draw";
+      party.winner = null;
+      party.drawOffer = null;
+      party.clocks.running = false;
+    } else {
+      party.drawOffer = { from: p.id, name: p.name };
+    }
+
+    broadcast(party);
+    res.json({ ok: true, party: serializeParty(party, p.id) });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+app.post("/api/party/chat", (req, res) => {
+  try {
+    const party = getParty(req.body?.partyCode);
+    const p = participant(party, req.body?.clientId);
+    if (!p) return res.status(403).json({ ok: false, error: "Сессия не найдена." });
+
+    const text = String(req.body?.text ?? "").trim().replace(/[<>]/g, "").slice(0, 300);
+    if (!text) return res.status(400).json({ ok: false, error: "Пустое сообщение." });
+
+    party.chat.push({
+      id: crypto.randomUUID(),
+      name: p.name,
+      text,
+      at: Date.now()
+    });
+    if (party.chat.length > MAX_CHAT) party.chat.splice(0, party.chat.length - MAX_CHAT);
+
+    broadcast(party);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+app.get("/api/party/events", (req, res) => {
+  try {
+    const party = getParty(req.query?.partyCode);
+    const id = String(req.query?.clientId || "").trim();
+    if (!participant(party, id)) return res.status(403).end();
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders?.();
+
+    const client = { id, res };
+    party.sse.add(client);
+    participant(party, id).connected = true;
+
+    send(res, "party", serializeParty(party, id));
+    broadcast(party);
+
+    const heartbeat = setInterval(() => {
+      try { res.write(": ping\n\n"); } catch { clearInterval(heartbeat); }
+    }, 15000);
+
+    req.on("close", () => {
+      clearInterval(heartbeat);
+      party.sse.delete(client);
+      const p = participant(party, id);
+      if (p) p.connected = false;
+      broadcast(party);
+      cleanup(party);
+    });
+  } catch {
+    res.status(404).end();
+  }
+});
+
+app.post("/api/party/leave", (req, res) => {
+  try {
+    const party = getParty(req.body?.partyCode);
+    const p = participant(party, req.body?.clientId);
+    if (p) {
+      if (p.role === "spectator") party.participants.delete(p.id);
+      else p.connected = false;
+    }
+    broadcast(party);
+    cleanup(party);
+    res.json({ ok: true });
+  } catch (error) {
+    res.status(400).json({ ok: false, error: error.message });
+  }
+});
+
+setInterval(() => {
+  for (const party of parties.values()) {
+    const before = party.gameOverReason;
+    updateClock(party);
+    if (!before && party.gameOverReason) broadcast(party);
+  }
+}, 250);
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, "index.html"));
+});
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Chess Party running on port ${PORT}`);
+});
 
