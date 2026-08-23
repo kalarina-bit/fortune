@@ -1,200 +1,526 @@
 <!doctype html>
 <html lang="ru">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+
     <title>Chess Party | Играть в шахматы онлайн</title>
-    <meta name="description" content="Играйте в красивые шахматы против компьютера или с друзьями в приватных комнатах." />
-    
-    <!-- Bunny Fonts -->
+
+    <meta
+        name="description"
+        content="Chess Party — шахматы против компьютера или с другом."
+    >
+
     <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/styles.css" />
-    <link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/823/823301.png">
-  </head>
-  <body>
-    <div class="page-shell">
-      <header class="main-header">
-        <h1><span class="chess-icon">♞</span> Chess Party</h1>
-      </header>
+    <link
+        rel="stylesheet"
+        href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800&display=swap"
+    >
 
-      <main class="app-grid">
-        <!-- Левая часть: Игровая доска -->
+    <link rel="stylesheet" href="/styles.css">
+
+    <link
+        rel="icon"
+        type="image/png"
+        href="https://cdn-icons-png.flaticon.com/512/823/823301.png"
+    >
+</head>
+
+<body>
+
+<div class="page-shell">
+
+    <header class="main-header">
+        <h1>
+            <span class="chess-icon">♞</span>
+            Chess Party
+        </h1>
+    </header>
+
+    <main class="app-grid">
+
         <section class="board-panel panel">
-          <div class="board-toolbar">
-            <div class="mode-info">
-              <p class="label">Текущий режим</p>
-              <h2 id="modeBadge">AI Арена</h2>
-            </div>
-            <div class="toolbar-actions">
-              <button id="newGameToolbarButton" class="secondary-button" type="button">Новая игра</button>
-              <button id="flipBoardButton" class="icon-button" type="button" title="Перевернуть доску">
-                <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none"><path d="M7 16V4m0 0L3 8m4-4l4 4m6 4v12m0 0l4-4m-4 4l-4-4"/></svg>
-              </button>
-              <button id="copyInviteButton" class="secondary-button hidden" type="button">Инвайт</button>
-            </div>
-          </div>
 
-          <div class="board-stage">
-            <div id="board" class="board" aria-label="Шахматная доска"></div>
-          </div>
+            <div class="board-toolbar">
 
-          <div class="status-strip">
-            <div class="status-text">
-              <p class="label">Статус игры</p>
-              <p id="statusMessage" class="status-message">Загрузка доски...</p>
+                <div class="mode-info">
+                    <p class="label">Текущий режим</p>
+                    <h2 id="modeBadge">AI Арена</h2>
+                </div>
+
+                <div class="toolbar-actions">
+
+                    <button
+                        id="newGameToolbarButton"
+                        class="secondary-button"
+                        type="button"
+                    >
+                        Новая игра
+                    </button>
+
+                    <button
+                        id="flipBoardButton"
+                        class="icon-button"
+                        type="button"
+                        title="Перевернуть доску"
+                    >
+                        ⇅
+                    </button>
+
+                    <button
+                        id="copyInviteButton"
+                        class="secondary-button hidden"
+                        type="button"
+                    >
+                        Инвайт
+                    </button>
+
+                </div>
             </div>
-            <div class="status-meta">
-              <span id="turnBadge" class="status-chip turn-white">Ход белых</span>
-              <span id="connectionBadge" class="status-chip connection-solo">Соло</span>
+
+            <div class="board-stage">
+
+                <div
+                    id="board"
+                    class="board"
+                    aria-label="Шахматная доска"
+                ></div>
+
             </div>
-          </div>
+
+            <div class="status-strip">
+
+                <div class="status-text">
+                    <p class="label">Статус игры</p>
+
+                    <p
+                        id="statusMessage"
+                        class="status-message"
+                    >
+                        Выберите режим и начните игру.
+                    </p>
+                </div>
+
+                <div class="status-meta">
+
+                    <span
+                        id="turnBadge"
+                        class="status-chip turn-white"
+                    >
+                        Ход белых
+                    </span>
+
+                    <span
+                        id="connectionBadge"
+                        class="status-chip connection-solo"
+                    >
+                        Соло
+                    </span>
+
+                </div>
+
+            </div>
+
         </section>
 
-        <!-- Правая часть: Управление -->
+
         <aside class="sidebar">
-          
-          <section class="panel">
-            <div class="panel-head">
-              <p class="label">Настройки</p>
-              <h3>Выберите режим</h3>
-            </div>
 
-            <div class="mode-switcher">
-              <button id="modeAiButton" class="mode-button active" type="button">С Компьютером</button>
-              <button id="modePartyButton" class="mode-button" type="button">С Другом</button>
-            </div>
+            <section class="panel">
 
-            <label class="field">
-              <span>Ваше имя</span>
-              <input id="playerNameInput" type="text" maxlength="24" placeholder="Введите имя..." />
-            </label>
+                <div class="panel-head">
+                    <p class="label">Настройки</p>
+                    <h3>Выберите режим</h3>
+                </div>
 
-            <!-- Контролы для игры с ИИ -->
-            <div id="aiControls" class="control-stack">
-              <div class="field-grid">
+                <div class="mode-switcher">
+
+                    <button
+                        id="modeAiButton"
+                        class="mode-button active"
+                        type="button"
+                    >
+                        С компьютером
+                    </button>
+
+                    <button
+                        id="modePartyButton"
+                        class="mode-button"
+                        type="button"
+                    >
+                        С другом
+                    </button>
+
+                </div>
+
                 <label class="field">
-                  <span>Сложность</span>
-                  <select id="aiLevelSelect">
-                    <option value="easy">Легкая</option>
-                    <option value="intermediate" selected>Средняя</option>
-                    <option value="hard">Сложная</option>
-                  </select>
+
+                    <span>Ваше имя</span>
+
+                    <input
+                        id="playerNameInput"
+                        type="text"
+                        maxlength="24"
+                        placeholder="Введите имя..."
+                    >
+
                 </label>
-                <label class="field">
-                  <span>Играть за</span>
-                  <select id="playerColorSelect">
-                    <option value="w" selected>Белых</option>
-                    <option value="b">Черных</option>
-                  </select>
-                </label>
-              </div>
-              
-              <label class="field">
-                <span>Контроль времени</span>
-                <select id="aiClockSelect">
-                  <option value="none">Без лимита</option>
-                  <option value="1+0">1 + 0 • Bullet</option>
-                  <option value="3+0">3 + 0 • Blitz</option>
-                  <option value="3+2">3 + 2 • Blitz</option>
-                  <option value="5+0">5 + 0 • Blitz</option>
-                  <option value="5+3">5 + 3 • Blitz</option>
-                  <option value="10+0" selected>10 + 0 • Rapid</option>
-                  <option value="15+10">15 + 10 • Rapid</option>
-                  <option value="30+0">30 + 0 • Classical</option>
-                  <option value="30+20">30 + 20 • Classical</option>
-                </select>
-              </label>
 
-              <button id="startAiButton" class="primary-button" type="button">Начать игру с ИИ</button>
-            </div>
 
-            <!-- Контролы для игры с другом -->
-            <div id="partyControls" class="control-stack hidden">
-              <div class="field-grid">
-                <button id="createPartyButton" class="primary-button" type="button">Создать комнату</button>
-              </div>
+                <div id="aiControls">
 
-              <label class="field">
-                <span>Код комнаты</span>
-                <div class="join-row">
-                  <input id="partyCodeInput" type="text" maxlength="6" placeholder="ABC123" />
-                  <button id="joinPartyButton" class="secondary-button" type="button">Войти</button>
+                    <div class="field-grid">
+
+                        <label class="field">
+
+                            <span>Сложность</span>
+
+                            <select id="aiLevelSelect">
+                                <option value="easy">
+                                    Легкая
+                                </option>
+
+                                <option
+                                    value="intermediate"
+                                    selected
+                                >
+                                    Средняя
+                                </option>
+
+                                <option value="hard">
+                                    Сложная
+                                </option>
+                            </select>
+
+                        </label>
+
+
+                        <label class="field">
+
+                            <span>Играть за</span>
+
+                            <select id="playerColorSelect">
+
+                                <option value="w" selected>
+                                    Белых
+                                </option>
+
+                                <option value="b">
+                                    Черных
+                                </option>
+
+                            </select>
+
+                        </label>
+
+                    </div>
+
+
+                    <label class="field">
+
+                        <span>Контроль времени</span>
+
+                        <select id="aiClockSelect">
+
+                            <option value="none">
+                                Без лимита
+                            </option>
+
+                            <option value="1+0">
+                                1 + 0 • Bullet
+                            </option>
+
+                            <option value="3+0">
+                                3 + 0 • Blitz
+                            </option>
+
+                            <option value="3+2">
+                                3 + 2 • Blitz
+                            </option>
+
+                            <option value="5+0">
+                                5 + 0 • Blitz
+                            </option>
+
+                            <option value="5+3">
+                                5 + 3 • Blitz
+                            </option>
+
+                            <option value="10+0" selected>
+                                10 + 0 • Rapid
+                            </option>
+
+                            <option value="15+10">
+                                15 + 10 • Rapid
+                            </option>
+
+                            <option value="30+0">
+                                30 + 0 • Classical
+                            </option>
+
+                            <option value="30+20">
+                                30 + 20 • Classical
+                            </option>
+
+                        </select>
+
+                    </label>
+
+
+                    <button
+                        id="startAiButton"
+                        class="primary-button"
+                        type="button"
+                    >
+                        Начать игру с ИИ
+                    </button>
+
                 </div>
-              </label>
 
-              <label class="field" id="partyClockContainer">
-                <span>Контроль времени (при создании)</span>
-                <select id="partyClockSelect">
-                  <option value="none">Без лимита</option>
-                  <option value="1+0">1 + 0 • Bullet</option>
-                  <option value="3+0">3 + 0 • Blitz</option>
-                  <option value="3+2">3 + 2 • Blitz</option>
-                  <option value="5+0">5 + 0 • Blitz</option>
-                  <option value="5+3">5 + 3 • Blitz</option>
-                  <option value="10+0" selected>10 + 0 • Rapid</option>
-                  <option value="15+10">15 + 10 • Rapid</option>
-                  <option value="30+0">30 + 0 • Classical</option>
-                  <option value="30+20">30 + 20 • Classical</option>
-                </select>
-              </label>
 
-              <button id="leavePartyButton" class="ghost-button hidden" type="button">Покинуть комнату</button>
-              <p id="partySummary" class="muted-copy">
-                Создайте комнату, чтобы играть белыми. Следующий игрок присоединится за черных.
-              </p>
-            </div>
-          </section>
+                <div
+                    id="partyControls"
+                    class="hidden"
+                >
 
-          <section class="panel">
-            <div class="panel-head">
-              <p class="label">Участники</p>
-              <h3>Стол и зрители</h3>
-            </div>
-            
-            <div class="roster-grid">
-              <div class="roster-card white-player">
-                <div class="roster-info">
-                  <span class="roster-role">Белые</span>
-                  <strong id="whitePlayerLabel">Свободно</strong>
+                    <button
+                        id="createPartyButton"
+                        class="primary-button"
+                        type="button"
+                    >
+                        Создать комнату
+                    </button>
+
+                    <label class="field">
+
+                        <span>Код комнаты</span>
+
+                        <div class="join-row">
+
+                            <input
+                                id="partyCodeInput"
+                                type="text"
+                                maxlength="6"
+                                placeholder="ABC123"
+                            >
+
+                            <button
+                                id="joinPartyButton"
+                                class="secondary-button"
+                                type="button"
+                            >
+                                Войти
+                            </button>
+
+                        </div>
+
+                    </label>
+
+
+                    <label class="field">
+
+                        <span>Контроль времени</span>
+
+                        <select id="partyClockSelect">
+
+                            <option value="none">
+                                Без лимита
+                            </option>
+
+                            <option value="1+0">
+                                1 + 0 • Bullet
+                            </option>
+
+                            <option value="3+0">
+                                3 + 0 • Blitz
+                            </option>
+
+                            <option value="3+2">
+                                3 + 2 • Blitz
+                            </option>
+
+                            <option value="5+0">
+                                5 + 0 • Blitz
+                            </option>
+
+                            <option value="5+3">
+                                5 + 3 • Blitz
+                            </option>
+
+                            <option value="10+0" selected>
+                                10 + 0 • Rapid
+                            </option>
+
+                            <option value="15+10">
+                                15 + 10 • Rapid
+                            </option>
+
+                            <option value="30+0">
+                                30 + 0 • Classical
+                            </option>
+
+                            <option value="30+20">
+                                30 + 20 • Classical
+                            </option>
+
+                        </select>
+
+                    </label>
+
+
+                    <button
+                        id="leavePartyButton"
+                        class="ghost-button hidden"
+                        type="button"
+                    >
+                        Покинуть комнату
+                    </button>
+
+                    <p
+                        id="partySummary"
+                        class="muted-copy"
+                    >
+                        Создайте комнату, чтобы играть белыми.
+                    </p>
+
                 </div>
-                <div id="whiteClock" class="player-clock">10:00</div>
-              </div>
-              
-              <div class="roster-card black-player">
-                <div class="roster-info">
-                  <span class="roster-role">Черные</span>
-                  <strong id="blackPlayerLabel">Компьютер</strong>
-                </div>
-                <div id="blackClock" class="player-clock">10:00</div>
-              </div>
-            </div>
 
-            <div class="spectator-panel">
-              <div class="spectator-header">
-                <p class="label">Зрители</p>
-                <span id="spectatorCount" class="badge">0 / 20</span>
-              </div>
-              <ul id="spectatorList" class="spectator-list">
-                <li class="empty-state">Пока никого нет</li>
-              </ul>
-            </div>
-          </section>
+            </section>
+
+
+            <section class="panel">
+
+                <div class="panel-head">
+                    <p class="label">Участники</p>
+                    <h3>Стол и зрители</h3>
+                </div>
+
+
+                <div class="roster-grid">
+
+                    <div class="roster-card white-player">
+
+                        <div class="roster-info">
+                            <span class="roster-role">
+                                Белые
+                            </span>
+
+                            <strong id="whitePlayerLabel">
+                                Вы
+                            </strong>
+                        </div>
+
+                        <div
+                            id="whiteClock"
+                            class="player-clock"
+                        >
+                            10:00
+                        </div>
+
+                    </div>
+
+
+                    <div class="roster-card black-player">
+
+                        <div class="roster-info">
+
+                            <span class="roster-role">
+                                Черные
+                            </span>
+
+                            <strong id="blackPlayerLabel">
+                                Компьютер
+                            </strong>
+
+                        </div>
+
+                        <div
+                            id="blackClock"
+                            class="player-clock"
+                        >
+                            10:00
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="spectator-panel">
+
+                    <div class="spectator-header">
+
+                        <p class="label">
+                            Зрители
+                        </p>
+
+                        <span
+                            id="spectatorCount"
+                            class="badge"
+                        >
+                            0 / 20
+                        </span>
+
+                    </div>
+
+                    <ul
+                        id="spectatorList"
+                        class="spectator-list"
+                    >
+                        <li class="empty-state">
+                            Пока никого нет
+                        </li>
+                    </ul>
+
+                </div>
+
+            </section>
+
         </aside>
-      </main>
+
+    </main>
+
+</div>
+
+
+<div
+    id="toastHost"
+    class="toast-host"
+    aria-live="polite"
+></div>
+
+
+<div
+    id="promotionDialog"
+    class="modal hidden"
+    role="dialog"
+    aria-modal="true"
+>
+
+    <div class="modal-card">
+
+        <p class="label">
+            Превращение пешки
+        </p>
+
+        <h3>
+            Выберите фигуру
+        </h3>
+
+        <div
+            id="promotionOptions"
+            class="promotion-options"
+        ></div>
+
     </div>
 
-    <div id="toastHost" class="toast-host" aria-live="polite" aria-atomic="true"></div>
+</div>
 
-    <div id="promotionDialog" class="modal hidden" role="dialog" aria-modal="true">
-      <div class="modal-card">
-        <p class="label">Превращение</p>
-        <h3>Выберите фигуру</h3>
-        <div id="promotionOptions" class="promotion-options"></div>
-      </div>
-    </div>
 
-    <script type="module" src="/js/app.js"></script>
-  </body>
+<script
+    type="module"
+    src="/js/app.js"
+></script>
+
+</body>
 </html>
-
