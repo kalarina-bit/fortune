@@ -11,17 +11,20 @@ function parseSquare(s) {
   return { file: FILES.indexOf(s[0]), rank: Number(s[1]) - 1 };
 }
 
+function squareSafe(file, rank) {
+  if (file < 0 || file > 7 || rank < 0 || rank > 7) return null;
+  return square(file, rank);
+}
+
 function other(color) {
   return color === "w" ? "b" : "w";
 }
 
-function cloneBoard(board) {
-  return Object.fromEntries(Object.entries(board).map(([s, p]) => [s, { ...p }]));
-}
-
+// ОПТИМИЗАЦИЯ: Поверхностное копирование. Фигуры иммутабельны при ходах, 
+// поэтому достаточно скопировать ссылки на объекты, что работает мгновенно.
 function cloneState(state) {
   return {
-    board: cloneBoard(state.board),
+    board: { ...state.board },
     turn: state.turn,
     castling: {
       w: { ...state.castling.w },
@@ -34,38 +37,93 @@ function cloneState(state) {
   };
 }
 
-function initialBoard() {
-  const board = {};
-  const back = "rnbqkbnr";
-  for (let f = 0; f < 8; f++) {
-    board[square(f, 0)] = { color: "w", type: back[f] };
-    board[square(f, 1)] = { color: "w", type: "p" };
-    board[square(f, 6)] = { color: "b", type: "p" };
-    board[square(f, 7)] = { color: "b", type: back[f] };
-  }
-  return board;
-}
-
 export class ChessEngine {
-  constructor() {
-    this.reset();
+  constructor(fen = null) {
+    if (fen) {
+      this.loadFen(fen);
+    } else {
+      this.reset();
+    }
   }
 
   reset() {
+    this.loadFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+  }
+
+  loadFen(fen) {
+    const [placement, turn, castling, enPassant, halfmove, fullmove] = fen.split(" ");
+    const board = {};
+    let rank = 7, file = 0;
+
+    for (const char of placement) {
+      if (char === "/") {
+        rank--; file = 0;
+      } else if (/\d/.test(char)) {
+        file += parseInt(char, 10);
+      } else {
+        const color = char === char.toUpperCase() ? "w" : "b";
+        board[square(file, rank)] = { color, type: char.toLowerCase() };
+        file++;
+      }
+    }
+
     this.state = {
-      board: initialBoard(),
-      turn: "w",
+      board,
+      turn: turn === "w" ? "w" : "b",
       castling: {
-        w: { k: true, q: true },
-        b: { k: true, q: true }
+        w: { k: castling.includes("K"), q: castling.includes("Q") },
+        b: { k: castling.includes("k"), q: castling.includes("q") }
       },
-      ep: null,
-      halfmove: 0,
-      fullmove: 1,
+      ep: enPassant === "-" ? null : enPassant,
+      halfmove: parseInt(halfmove || 0, 10),
+      fullmove: parseInt(fullmove || 1, 10),
       lastMove: null
     };
+    
     this.history = [];
     this.positions = new Map([[this.positionKey(this.state), 1]]);
+  }
+
+  get fen() {
+    let fen = "";
+    for (let r = 7; r >= 0; r--) {
+      let empty = 0;
+      for (let f = 0; f < 8; f++) {
+        const p = this.state.board[square(f, r)];
+        if (p) {
+          if (empty > 0) { fen += empty; empty = 0; }
+          fen += p.color === "w" ? p.type.toUpperCase() : p.type;
+        } else {
+          empty++;
+        }
+      }
+      if (empty > 0) fen += empty;
+      if (r > 0) fen += "/";
+    }
+
+    let castling = "";
+    if (this.state.castling.w.k) castling += "K";
+    if (this.state.castling.w.q) castling += "Q";
+    if (this.state.castling.b.k) castling += "k";
+    if (this.state.castling.b.q) castling += "q";
+    
+    return `${fen} ${this.state.turn} ${castling || "-"} ${this.state.ep || "-"} ${this.state.halfmove} ${this.state.fullmove}`;
+  }
+
+  get pgn() {
+    let pgn = "";
+    for (let i = 0; i < this.history.length; i++) {
+      if (this.history[i].piece.color === "w") {
+        pgn += `${Math.floor(i / 2) + 1}. ${this.history[i].san} `;
+      } else {
+        pgn += `${this.history[i].san} `;
+      }
+    }
+    const status = this.getStatus();
+    if (status.phase === "checkmate") pgn += status.winner === "w" ? "1-0" : "0-1";
+    else if (status.phase === "draw") pgn += "1/2-1/2";
+    
+    return pgn.trim();
   }
 
   positionKey(state) {
@@ -89,7 +147,6 @@ export class ChessEngine {
   legalMoves(color = this.state.turn) {
     const pseudo = this.pseudoMoves(this.state, color);
     const legal = [];
-
     for (const move of pseudo) {
       const next = this.applyToClone(this.state, move);
       if (!this.inCheck(next, color)) legal.push(move);
@@ -99,12 +156,10 @@ export class ChessEngine {
 
   pseudoMoves(state, color) {
     const result = [];
-
     for (const [from, piece] of Object.entries(state.board)) {
       if (piece.color !== color) continue;
       const pos = parseSquare(from);
-      if (!pos) continue;
-
+      
       if (piece.type === "p") this.pawnMoves(state, from, piece, pos, result);
       else if (piece.type === "n") this.knightMoves(state, from, piece, pos, result);
       else if (piece.type === "b") this.slideMoves(state, from, piece, pos, result, [[1,1],[1,-1],[-1,1],[-1,-1]]);
@@ -112,7 +167,6 @@ export class ChessEngine {
       else if (piece.type === "q") this.slideMoves(state, from, piece, pos, result, [[1,1],[1,-1],[-1,1],[-1,-1],[1,0],[-1,0],[0,1],[0,-1]]);
       else if (piece.type === "k") this.kingMoves(state, from, piece, pos, result);
     }
-
     return result;
   }
 
@@ -121,9 +175,7 @@ export class ChessEngine {
     if (target?.color === state.board[from]?.color) return;
     if (target?.type === "k") return;
     result.push({
-      from, to,
-      promotion,
-      special,
+      from, to, promotion, special,
       capture: Boolean(target) || special === "ep"
     });
   }
@@ -133,32 +185,27 @@ export class ChessEngine {
     const startRank = piece.color === "w" ? 1 : 6;
     const promotionRank = piece.color === "w" ? 7 : 0;
 
-    const oneRank = pos.rank + dir;
-    if (oneRank >= 0 && oneRank <= 7) {
-      const one = square(pos.file, oneRank);
-      if (!state.board[one]) {
-        if (oneRank === promotionRank) {
-          for (const promotion of ["q","r","b","n"]) this.pushMove(state, result, from, one, promotion);
-        } else {
-          this.pushMove(state, result, from, one);
-          if (pos.rank === startRank) {
-            const two = square(pos.file, pos.rank + dir * 2);
-            if (!state.board[two]) this.pushMove(state, result, from, two, null, "double");
-          }
+    const one = squareSafe(pos.file, pos.rank + dir);
+    if (one && !state.board[one]) {
+      if (pos.rank + dir === promotionRank) {
+        for (const p of ["q","r","b","n"]) this.pushMove(state, result, from, one, p);
+      } else {
+        this.pushMove(state, result, from, one);
+        if (pos.rank === startRank) {
+          const two = squareSafe(pos.file, pos.rank + dir * 2);
+          if (two && !state.board[two]) this.pushMove(state, result, from, two, null, "double");
         }
       }
     }
 
     for (const df of [-1, 1]) {
-      const f = pos.file + df;
-      const r = pos.rank + dir;
-      if (f < 0 || f > 7 || r < 0 || r > 7) continue;
-      const to = square(f, r);
+      const to = squareSafe(pos.file + df, pos.rank + dir);
+      if (!to) continue;
+      
       const target = state.board[to];
-
       if (target && target.color !== piece.color && target.type !== "k") {
-        if (r === promotionRank) {
-          for (const promotion of ["q","r","b","n"]) this.pushMove(state, result, from, to, promotion);
+        if (pos.rank + dir === promotionRank) {
+          for (const p of ["q","r","b","n"]) this.pushMove(state, result, from, to, p);
         } else {
           this.pushMove(state, result, from, to);
         }
@@ -171,8 +218,8 @@ export class ChessEngine {
   knightMoves(state, from, piece, pos, result) {
     const jumps = [[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]];
     for (const [df, dr] of jumps) {
-      const f = pos.file + df, r = pos.rank + dr;
-      if (f >= 0 && f <= 7 && r >= 0 && r <= 7) this.pushMove(state, result, from, square(f,r));
+      const to = squareSafe(pos.file + df, pos.rank + dr);
+      if (to) this.pushMove(state, result, from, to);
     }
   }
 
@@ -182,8 +229,9 @@ export class ChessEngine {
       while (f >= 0 && f <= 7 && r >= 0 && r <= 7) {
         const to = square(f, r);
         const target = state.board[to];
-        if (!target) this.pushMove(state, result, from, to);
-        else {
+        if (!target) {
+          this.pushMove(state, result, from, to);
+        } else {
           if (target.color !== piece.color && target.type !== "k") this.pushMove(state, result, from, to);
           break;
         }
@@ -196,10 +244,8 @@ export class ChessEngine {
     for (let df = -1; df <= 1; df++) {
       for (let dr = -1; dr <= 1; dr++) {
         if (!df && !dr) continue;
-        const f = pos.file + df, r = pos.rank + dr;
-        if (f >= 0 && f <= 7 && r >= 0 && r <= 7) {
-          this.pushMove(state, result, from, square(f,r));
-        }
+        const to = squareSafe(pos.file + df, pos.rank + dr);
+        if (to) this.pushMove(state, result, from, to);
       }
     }
 
@@ -207,26 +253,18 @@ export class ChessEngine {
     const enemy = other(piece.color);
 
     if (pos.file === 4 && pos.rank === rank && !this.inCheck(state, piece.color)) {
-      if (state.castling[piece.color].k &&
-          !state.board[square(5,rank)] &&
-          !state.board[square(6,rank)] &&
-          state.board[square(7,rank)]?.type === "r" &&
-          state.board[square(7,rank)]?.color === piece.color) {
-        const through = square(5,rank), to = square(6,rank);
-        if (!this.isAttacked(state, through, enemy) && !this.isAttacked(state, to, enemy)) {
-          this.pushMove(state, result, from, to, null, "castle-k");
+      // King-side
+      if (state.castling[piece.color].k && !state.board[square(5,rank)] && !state.board[square(6,rank)] && 
+          state.board[square(7,rank)]?.type === "r") {
+        if (!this.isAttacked(state, square(5,rank), enemy) && !this.isAttacked(state, square(6,rank), enemy)) {
+          this.pushMove(state, result, from, square(6,rank), null, "castle-k");
         }
       }
-
-      if (state.castling[piece.color].q &&
-          !state.board[square(1,rank)] &&
-          !state.board[square(2,rank)] &&
-          !state.board[square(3,rank)] &&
-          state.board[square(0,rank)]?.type === "r" &&
-          state.board[square(0,rank)]?.color === piece.color) {
-        const through = square(3,rank), to = square(2,rank);
-        if (!this.isAttacked(state, through, enemy) && !this.isAttacked(state, to, enemy)) {
-          this.pushMove(state, result, from, to, null, "castle-q");
+      // Queen-side
+      if (state.castling[piece.color].q && !state.board[square(1,rank)] && !state.board[square(2,rank)] && 
+          !state.board[square(3,rank)] && state.board[square(0,rank)]?.type === "r") {
+        if (!this.isAttacked(state, square(3,rank), enemy) && !this.isAttacked(state, square(2,rank), enemy)) {
+          this.pushMove(state, result, from, square(2,rank), null, "castle-q");
         }
       }
     }
@@ -235,24 +273,15 @@ export class ChessEngine {
   applyToClone(state, move) {
     const next = cloneState(state);
     const piece = next.board[move.from];
-    if (!piece) return next;
-
     delete next.board[move.from];
 
     if (move.special === "ep") {
-      const to = parseSquare(move.to);
-      const captured = square(to.file, to.rank + (piece.color === "w" ? -1 : 1));
-      delete next.board[captured];
+      const toSq = parseSquare(move.to);
+      delete next.board[square(toSq.file, toSq.rank + (piece.color === "w" ? -1 : 1))];
     }
 
     const captured = next.board[move.to];
-    delete next.board[move.to];
-
-    const moved = {
-      color: piece.color,
-      type: move.promotion || piece.type
-    };
-    next.board[move.to] = moved;
+    next.board[move.to] = { color: piece.color, type: move.promotion || piece.type };
 
     if (piece.type === "k") {
       next.castling[piece.color].k = false;
@@ -275,7 +304,6 @@ export class ChessEngine {
       if (move.from === "a8") next.castling.b.q = false;
       if (move.from === "h8") next.castling.b.k = false;
     }
-
     if (captured?.type === "r") {
       if (move.to === "a1") next.castling.w.q = false;
       if (move.to === "h1") next.castling.w.k = false;
@@ -284,11 +312,8 @@ export class ChessEngine {
     }
 
     next.ep = null;
-    if (piece.type === "p") {
-      const a = parseSquare(move.from), b = parseSquare(move.to);
-      if (Math.abs(b.rank - a.rank) === 2) {
-        next.ep = square(a.file, (a.rank + b.rank) / 2);
-      }
+    if (piece.type === "p" && Math.abs(parseSquare(move.to).rank - parseSquare(move.from).rank) === 2) {
+      next.ep = square(parseSquare(move.from).file, (parseSquare(move.from).rank + parseSquare(move.to).rank) / 2);
     }
 
     next.halfmove = piece.type === "p" || move.capture ? 0 : next.halfmove + 1;
@@ -297,51 +322,60 @@ export class ChessEngine {
     return next;
   }
 
-  findKing(state, color) {
-    for (const [s, p] of Object.entries(state.board)) {
-      if (p.color === color && p.type === "k") return s;
-    }
-    return null;
-  }
-
   inCheck(state, color) {
-    const king = this.findKing(state, color);
-    return !king || this.isAttacked(state, king, other(color));
+    const kingEntry = Object.entries(state.board).find(([, p]) => p.color === color && p.type === "k");
+    return kingEntry ? this.isAttacked(state, kingEntry[0], other(color)) : false;
   }
 
-  isAttacked(state, target, byColor) {
-    const t = parseSquare(target);
+  // ОПТИМИЗАЦИЯ: Reverse Raycasting (Обратная трассировка). Ищем атакующих вокруг клетки, 
+  // вместо того чтобы перебирать все фигуры на доске. Работает в разы быстрее.
+  isAttacked(state, targetSq, byColor) {
+    const t = parseSquare(targetSq);
     if (!t) return false;
 
-    for (const [from, piece] of Object.entries(state.board)) {
-      if (piece.color !== byColor) continue;
-      const p = parseSquare(from);
-      const df = t.file - p.file;
-      const dr = t.rank - p.rank;
+    // 1. Проверяем коней
+    const knightJumps = [[1,2],[2,1],[-1,2],[-2,1],[1,-2],[2,-1],[-1,-2],[-2,-1]];
+    for (const [df, dr] of knightJumps) {
+      const p = state.board[squareSafe(t.file + df, t.rank + dr)];
+      if (p && p.color === byColor && p.type === "n") return true;
+    }
 
-      if (piece.type === "p") {
-        const dir = byColor === "w" ? 1 : -1;
-        if (dr === dir && Math.abs(df) === 1) return true;
-      } else if (piece.type === "n") {
-        if ((Math.abs(df) === 1 && Math.abs(dr) === 2) || (Math.abs(df) === 2 && Math.abs(dr) === 1)) return true;
-      } else if (piece.type === "k") {
-        if (Math.max(Math.abs(df), Math.abs(dr)) === 1) return true;
-      } else {
-        const diagonal = Math.abs(df) === Math.abs(dr);
-        const straight = df === 0 || dr === 0;
-        const allowed = piece.type === "b" ? diagonal : piece.type === "r" ? straight : diagonal || straight;
-        if (!allowed) continue;
-
-        const sf = Math.sign(df), sr = Math.sign(dr);
-        let f = p.file + sf, r = p.rank + sr;
-        let clear = true;
-        while (f !== t.file || r !== t.rank) {
-          if (state.board[square(f,r)]) { clear = false; break; }
-          f += sf; r += sr;
-        }
-        if (clear) return true;
+    // 2. Проверяем королей
+    for (let df = -1; df <= 1; df++) {
+      for (let dr = -1; dr <= 1; dr++) {
+        if (!df && !dr) continue;
+        const p = state.board[squareSafe(t.file + df, t.rank + dr)];
+        if (p && p.color === byColor && p.type === "k") return true;
       }
     }
+
+    // 3. Проверяем пешки (смотрим в сторону откуда могла прийти пешка врага)
+    const pDir = byColor === "w" ? -1 : 1; 
+    for (const df of [-1, 1]) {
+      const p = state.board[squareSafe(t.file + df, t.rank + pDir)];
+      if (p && p.color === byColor && p.type === "p") return true;
+    }
+
+    // 4. Проверяем дальнобойные фигуры (Слоны, Ладьи, Ферзи)
+    const dirs = [
+      { df: 1, dr: 1, types: ["b", "q"] }, { df: -1, dr: -1, types: ["b", "q"] },
+      { df: 1, dr: -1, types: ["b", "q"] }, { df: -1, dr: 1, types: ["b", "q"] },
+      { df: 1, dr: 0, types: ["r", "q"] }, { df: -1, dr: 0, types: ["r", "q"] },
+      { df: 0, dr: 1, types: ["r", "q"] }, { df: 0, dr: -1, types: ["r", "q"] }
+    ];
+
+    for (const { df, dr, types } of dirs) {
+      let f = t.file + df, r = t.rank + dr;
+      while (f >= 0 && f <= 7 && r >= 0 && r <= 7) {
+        const p = state.board[square(f, r)];
+        if (p) {
+          if (p.color === byColor && types.includes(p.type)) return true;
+          break; // Наткнулись на любую другую фигуру — луч блокирован
+        }
+        f += df; r += dr;
+      }
+    }
+
     return false;
   }
 
@@ -351,23 +385,28 @@ export class ChessEngine {
     if (move.special === "castle-k") return this.suffixAfter(move, "O-O");
     if (move.special === "castle-q") return this.suffixAfter(move, "O-O-O");
 
-    const legal = legalBefore || this.legalMoves(this.state);
+    const legal = legalBefore || this.legalMoves(this.state.turn);
     let san = piece.type === "p" ? "" : piece.type.toUpperCase();
 
-    const same = legal.filter(m =>
-      m.to === move.to &&
-      m.from !== move.from &&
-      this.state.board[m.from]?.type === piece.type
-    );
+    const same = legal.filter(m => m.to === move.to && m.from !== move.from && this.state.board[m.from]?.type === piece.type);
 
+    // Улучшенная дисамбигуация (правила SAN)
     if (same.length) {
-      const from = parseSquare(move.from);
-      const fileConflict = same.some(m => parseSquare(m.from).file === from.file);
-      san += fileConflict ? move.from : move.from[0];
+      const fromSq = parseSquare(move.from);
+      const sameFile = same.some(m => parseSquare(m.from).file === fromSq.file);
+      const sameRank = same.some(m => parseSquare(m.from).rank === fromSq.rank);
+
+      if (!sameFile) {
+        san += move.from[0]; // Отличаются по вертикали
+      } else if (!sameRank) {
+        san += move.from[1]; // Отличаются по горизонтали
+      } else {
+        san += move.from; // Приходится указывать и то, и другое
+      }
     }
 
     if (move.capture) {
-      if (piece.type === "p") san += move.from[0];
+      if (piece.type === "p" && same.length === 0) san += move.from[0];
       san += "x";
     }
 
@@ -380,14 +419,10 @@ export class ChessEngine {
   suffixAfter(move, san) {
     const next = this.applyToClone(this.state, move);
     if (this.inCheck(next, next.turn)) {
-      const replies = this.legalMovesFromState(next, next.turn);
+      const replies = this.legalMoves(next.turn).filter(m => !this.inCheck(this.applyToClone(next, m), next.turn));
       return san + (replies.length ? "+" : "#");
     }
     return san;
-  }
-
-  legalMovesFromState(state, color) {
-    return this.pseudoMoves(state, color).filter(m => !this.inCheck(this.applyToClone(state, m), color));
   }
 
   makeMove(input) {
@@ -395,58 +430,42 @@ export class ChessEngine {
     const to = String(input?.to || "").toLowerCase();
     const promotion = String(input?.promotion || "q").toLowerCase();
 
-    const legal = this.legalMoves(this.state);
-    const move = legal.find(m =>
-      m.from === from &&
-      m.to === to &&
-      (m.promotion ? m.promotion === promotion : !m.promotion)
-    );
+    const legal = this.legalMoves(this.state.turn);
+    const move = legal.find(m => m.from === from && m.to === to && (m.promotion ? m.promotion === promotion : true));
 
     if (!move) return { ok: false, error: "Недопустимый ход." };
 
     const san = this.sanForMove(move, legal);
     const piece = this.state.board[from];
-    const capturedPiece =
-      move.special === "ep"
-        ? { type: "p", color: other(piece.color) }
-        : this.state.board[to] || null;
+    const capturedPiece = move.special === "ep" ? { type: "p", color: other(piece.color) } : this.state.board[to] || null;
 
     this.history.push({
-      ...move,
-      san,
-      piece: { ...piece },
+      ...move, san, piece: { ...piece },
       captured: capturedPiece ? { ...capturedPiece } : null,
       before: cloneState(this.state)
     });
 
     this.state = this.applyToClone(this.state, move);
-    this.state.lastMove = {
-      from,
-      to,
-      san,
-      piece: { ...piece },
-      captured: capturedPiece ? { ...capturedPiece } : null
-    };
+    this.state.lastMove = { from, to, san, piece: { ...piece }, captured: capturedPiece ? { ...capturedPiece } : null };
 
     const key = this.positionKey(this.state);
     this.positions.set(key, (this.positions.get(key) || 0) + 1);
 
-    return {
-      ok: true,
-      move: this.state.lastMove,
-      status: this.getStatus()
-    };
+    return { ok: true, move: this.state.lastMove, status: this.getStatus() };
   }
 
+  // ОПТИМИЗАЦИЯ: O(1) Undo (Мгновенная отмена хода)
   undo() {
     const last = this.history.pop();
     if (!last) return false;
+    
+    // Декрементируем счетчик текущей позиции
+    const currentKey = this.positionKey(this.state);
+    const count = this.positions.get(currentKey);
+    if (count === 1) this.positions.delete(currentKey);
+    else this.positions.set(currentKey, count - 1);
+
     this.state = last.before;
-    this.positions = new Map([[this.positionKey(this.state), 1]]);
-    for (const h of this.history) {
-      const key = this.positionKey(h.before);
-      this.positions.set(key, (this.positions.get(key) || 0) + 1);
-    }
     return true;
   }
 
@@ -455,78 +474,61 @@ export class ChessEngine {
     const moves = this.legalMoves(color);
     const check = this.inCheck(this.state, color);
 
-    if (!moves.length && check) return { phase: "checkmate", turn: color, winner: other(color) };
-    if (!moves.length) return { phase: "draw", reason: "stalemate", turn: color };
+    if (!moves.length) return check ? { phase: "checkmate", turn: color, winner: other(color) } : { phase: "draw", reason: "stalemate", turn: color };
     if (this.state.halfmove >= 100) return { phase: "draw", reason: "50-move", turn: color };
-
+    
     const key = this.positionKey(this.state);
     if ((this.positions.get(key) || 0) >= 3) return { phase: "draw", reason: "threefold", turn: color };
-
     if (this.insufficientMaterial()) return { phase: "draw", reason: "insufficient-material", turn: color };
     if (check) return { phase: "check", turn: color };
+    
     return { phase: "playing", turn: color };
   }
 
   insufficientMaterial() {
-    const pieces = Object.values(this.state.board);
-    const nonKings = pieces.filter(p => p.type !== "k");
-    if (!nonKings.length) return true;
-    if (nonKings.length === 1 && (nonKings[0].type === "b" || nonKings[0].type === "n")) return true;
-    if (nonKings.length === 2 && nonKings.every(p => p.type === "b")) {
-      const bishops = Object.entries(this.state.board)
-        .filter(([, p]) => p.type === "b")
-        .map(([s, p]) => ({ s, color: p.color }));
-      if (bishops.length === 2) {
-        const colors = bishops.map(({ s }) => {
-          const p = parseSquare(s);
-          return (p.file + p.rank) % 2;
-        });
-        if (colors[0] === colors[1]) return true;
-      }
+    const pieces = Object.values(this.state.board).filter(p => p.type !== "k");
+    if (pieces.length === 0) return true;
+    if (pieces.length === 1 && ["n", "b"].includes(pieces[0].type)) return true;
+    
+    // Два слона одноцветных полей у разных сторон
+    if (pieces.length === 2 && pieces.every(p => p.type === "b")) {
+      const bishops = Object.entries(this.state.board).filter(([, p]) => p.type === "b");
+      const c1 = parseSquare(bishops[0][0]);
+      const c2 = parseSquare(bishops[1][0]);
+      if ((c1.file + c1.rank) % 2 === (c2.file + c2.rank) % 2) return true;
     }
     return false;
   }
 
   material() {
     const captured = { w: [], b: [] };
-    for (const h of this.history) {
-      if (h.captured) captured[h.piece.color].push(h.captured.type);
-    }
-
-    const sort = a => a.sort((x,y) => VALUES[y] - VALUES[x]);
+    for (const h of this.history) if (h.captured) captured[h.piece.color].push(h.captured.type);
+    
+    const sort = a => a.sort((x, y) => VALUES[y] - VALUES[x]);
     sort(captured.w); sort(captured.b);
 
-    const score = {
-      w: captured.b.reduce((n,p) => n + VALUES[p], 0),
-      b: captured.w.reduce((n,p) => n + VALUES[p], 0)
+    return {
+      captured,
+      score: {
+        w: captured.b.reduce((n, p) => n + VALUES[p], 0),
+        b: captured.w.reduce((n, p) => n + VALUES[p], 0)
+      }
     };
-
-    return { captured, score };
   }
 
   getSnapshot() {
     return {
-      board: cloneBoard(this.state.board),
-      turn: this.state.turn,
-      castling: {
-        w: { ...this.state.castling.w },
-        b: { ...this.state.castling.b }
-      },
-      ep: this.state.ep,
-      halfmove: this.state.halfmove,
-      fullmove: this.state.fullmove,
-      lastMove: this.state.lastMove ? { ...this.state.lastMove } : null,
-      moves: this.history.map(h => ({
-        number: this.history.indexOf(h) + 1,
-        from: h.from,
-        to: h.to,
-        san: h.san,
-        color: h.piece.color,
-        piece: h.piece.type,
-        capture: Boolean(h.captured)
+      ...cloneState(this.state),
+      moves: this.history.map((h, i) => ({
+        number: i + 1,
+        from: h.from, to: h.to,
+        san: h.san, color: h.piece.color,
+        piece: h.piece.type, capture: Boolean(h.captured)
       })),
       material: this.material(),
-      status: this.getStatus()
+      status: this.getStatus(),
+      fen: this.fen,
+      pgn: this.pgn
     };
   }
 }
