@@ -1,538 +1,664 @@
-import { ChessEngine, VALUES } from "/shared/chess-engine.js";
+import { ChessEngine, ChessRules } from "/shared/chess-engine.js";
+import { chooseComputerMove } from "/js/ai.js";
 
-const PIECES = {
-  w: { k:"♔", q:"♕", r:"♖", b:"♗", n:"♘", p:"♙" },
-  b: { k:"♚", q:"♛", r:"♜", b:"♝", n:"♞", p:"♟" }
+const PIECE_GLYPHS = {
+    w: { K: "♔", Q: "♕", R: "♖", B: "♗", N: "♘", P: "♙" },
+    b: { K: "♚", Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟" },
 };
 
-const $ = (id) => document.getElementById(id);
+const STORAGE_KEYS = { name: "chess-party:name", partyIds: "chess-party:party-ids" };
+const TIME_CONTROLS = { none: 0, "1+0": 60, "3+0": 180, "3+2": 180, "5+0": 300, "5+3": 300, "10+0": 600, "15+10": 900, "30+0": 1800, "30+20": 1800 };
 
-const state = {
-  mode: null,
-  engine: new ChessEngine(),
-  orientation: "w",
-  selected: null,
-  legal: [],
-  party: null,
-  clientId: localStorage.getItem("chess-client-id") || crypto.randomUUID(),
-  eventSource: null,
-  pendingPromotion: null,
-  aiBusy: false,
-  localGameOver: false
+const elements = {
+    modeBadge: document.querySelector("#modeBadge"),
+    connectionBadge: document.querySelector("#connectionBadge"),
+    board: document.querySelector("#board"),
+    statusMessage: document.querySelector("#statusMessage"),
+    turnBadge: document.querySelector("#turnBadge"),
+    modeAiButton: document.querySelector("#modeAiButton"),
+    modePartyButton: document.querySelector("#modePartyButton"),
+    playerNameInput: document.querySelector("#playerNameInput"),
+    aiControls: document.querySelector("#aiControls"),
+    partyControls: document.querySelector("#partyControls"),
+    aiLevelSelect: document.querySelector("#aiLevelSelect"),
+    playerColorSelect: document.querySelector("#playerColorSelect"),
+    aiTimeControl: document.querySelector("#aiClockSelect"),
+    partyTimeControl: document.querySelector("#partyClockSelect"),
+    startAiButton: document.querySelector("#startAiButton"),
+    newGameToolbarButton: document.querySelector("#newGameToolbarButton"),
+    createPartyButton: document.querySelector("#createPartyButton"),
+    partyCodeInput: document.querySelector("#partyCodeInput"),
+    joinPartyButton: document.querySelector("#joinPartyButton"),
+    leavePartyButton: document.querySelector("#leavePartyButton"),
+    partySummary: document.querySelector("#partySummary"),
+    copyInviteButton: document.querySelector("#copyInviteButton"),
+    flipBoardButton: document.querySelector("#flipBoardButton"),
+    whitePlayerLabel: document.querySelector("#whitePlayerLabel"),
+    blackPlayerLabel: document.querySelector("#blackPlayerLabel"),
+    rosterWhite: document.querySelector("#rosterWhite"),
+    rosterBlack: document.querySelector("#rosterBlack"),
+    spectatorList: document.querySelector("#spectatorList"),
+    spectatorCount: document.querySelector("#spectatorCount"),
+    whiteClock: document.querySelector("#whiteClock"),
+    blackClock: document.querySelector("#blackClock"),
+    promotionDialog: document.querySelector("#promotionDialog"),
+    promotionOptions: document.querySelector("#promotionOptions"),
+    toastHost: document.querySelector("#toastHost"),
 };
 
-localStorage.setItem("chess-client-id", state.clientId);
+const appState = {
+    mode: "ai", engine: new ChessEngine(), orientation: "w", selectedSquare: null,
+    aiLevel: "intermediate", playerColor: "w", aiTimeControl: "10+0",
+    isAiThinking: false, aiMoveTimer: null, aiClockTimer: null, pendingPromotionMoves: null,
+    playerName: "Guest", party: null, partySnapshot: null, partyStream: null,
+    gameOver: false, gameOverMessage: null,
+    localClocks: { white: 0, black: 0, running: false, turn: "w", lastTick: 0 },
+};
 
-function show(view) {
-  $("homeView").classList.toggle("hidden", view !== "home");
-  $("gameView").classList.toggle("hidden", view !== "game");
+function currentStatus() {
+    return appState.engine.state.status || ChessEngine.evaluateStatus(appState.engine.state);
 }
 
-function toast(text) {
-  const el = $("toast");
-  el.textContent = text;
-  el.classList.add("show");
-  clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => el.classList.remove("show"), 2200);
+function currentHumanColor() {
+    if (appState.mode === "ai") return appState.playerColor;
+    if (!appState.party) return null;
+    if (appState.party.role === "white") return "w";
+    if (appState.party.role === "black") return "b";
+    return null;
 }
 
-function resetSelection() {
-  state.selected = null;
-  state.legal = [];
+function isHumanTurn() {
+    const color = currentHumanColor();
+    const status = currentStatus();
+    return Boolean(color && status.phase === "playing" && appState.engine.state.turn === color && !appState.isAiThinking && !appState.gameOver);
 }
 
-function boardOrder() {
-  const files = "abcdefgh".split("");
-  const ranks = [8,7,6,5,4,3,2,1];
-  if (state.orientation === "b") {
-    files.reverse();
-    ranks.reverse();
-  }
-  return { files, ranks };
+function getLegalMovesForSelected() {
+    if (!appState.selectedSquare) return [];
+    return appState.engine.getMovesFrom(appState.selectedSquare);
 }
 
-function snapshot() {
-  return state.mode === "party" ? state.party?.game : state.engine.getSnapshot();
+function clearSelection() {
+    appState.selectedSquare = null;
+    appState.pendingPromotionMoves = null;
+}
+
+function escapeHtml(value) {
+    return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
+}
+
+function formatClock(seconds) {
+    const total = Math.max(0, Math.ceil(Number(seconds) || 0));
+    const minutes = Math.floor(total / 60);
+    const secs = total % 60;
+    if (minutes >= 60) {
+        const hours = Math.floor(minutes / 60);
+        return `${String(hours).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    }
+    return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+}
+
+function getIncrementForTimeControl(value) { return Number(String(value || "").split("+")[1] || 0); }
+function getTimeControlSeconds(value) { return TIME_CONTROLS[value] || 0; }
+
+function showToast(message, type = "info") {
+    if (!elements.toastHost) return console.log(message);
+    const toast = document.createElement("div");
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+    elements.toastHost.appendChild(toast);
+    window.setTimeout(() => toast.remove(), 3200);
+}
+
+function setMode(mode) {
+    appState.mode = mode;
+    const isAi = mode === "ai";
+    const isParty = mode === "party";
+    elements.modeAiButton?.classList.toggle("active", isAi);
+    elements.modePartyButton?.classList.toggle("active", isParty);
+    elements.aiControls?.classList.toggle("hidden", !isAi);
+    elements.partyControls?.classList.toggle("hidden", !isParty);
+    if (elements.modeBadge) elements.modeBadge.textContent = isAi ? "AI Arena" : "Party Lounge";
+}
+
+function updatePartyUrl(code = null) {
+    const url = new URL(window.location.href);
+    if (code) url.searchParams.set("party", code);
+    else url.searchParams.delete("party");
+    window.history.replaceState({}, "", url);
 }
 
 function renderBoard() {
-  const snap = snapshot();
-  if (!snap) return;
+    if (!elements.board) return;
+    elements.board.innerHTML = "";
+    
+    const selectedMoves = getLegalMovesForSelected();
+    const moveTargets = new Map(selectedMoves.map(move => [move.to, move]));
+    const orientation = appState.orientation;
+    
+    const xOrder = orientation === "w" ? [0, 1, 2, 3, 4, 5, 6, 7] : [7, 6, 5, 4, 3, 2, 1, 0];
+    const yOrder = orientation === "w" ? [7, 6, 5, 4, 3, 2, 1, 0] : [0, 1, 2, 3, 4, 5, 6, 7];
+    const status = currentStatus();
+    
+    const checkColor = status.check ? appState.engine.state.turn : null;
+    const lastMove = appState.engine.state.lastMove;
 
-  const board = $("board");
-  board.innerHTML = "";
-  const { files, ranks } = boardOrder();
+    for (const y of yOrder) {
+        for (const x of xOrder) {
+            const squareName = ChessRules.toSquare(x, y);
+            const piece = appState.engine.state.board[y][x];
+            const square = document.createElement("button");
+            
+            square.type = "button";
+            square.className = `square ${(x + y) % 2 === 0 ? "dark" : "light"}`;
+            square.dataset.square = squareName;
 
-  const legalMap = new Map(state.legal.map(m => [m.to, m]));
-  const last = snap.lastMove;
+            if (appState.selectedSquare === squareName) square.classList.add("selected");
+            
+            const move = moveTargets.get(squareName);
+            if (move) square.classList.add(move.capture ? "capture-target" : "legal-target");
+            
+            if (lastMove && (lastMove.from === squareName || lastMove.to === squareName)) square.classList.add("last-move");
+            if (piece && piece.type === "K" && piece.color === checkColor) square.classList.add("check-square");
 
-  for (const rank of ranks) {
-    for (const file of files) {
-      const name = `${file}${rank}`;
-      const f = "abcdefgh".indexOf(file);
-      const r = rank - 1;
-      const el = document.createElement("button");
-      el.type = "button";
-      el.className = `square ${((f+r)%2===0) ? "light" : "dark"}`;
-      el.dataset.square = name;
+            if (piece) {
+                const pieceNode = document.createElement("span");
+                pieceNode.className = `piece ${piece.color === "w" ? "white" : "black"}`;
+                pieceNode.textContent = PIECE_GLYPHS[piece.color][piece.type];
+                square.appendChild(pieceNode);
+            }
 
-      if (state.selected === name) el.classList.add("selected");
-      if (state.selected && state.legal.some(m => m.to === name)) {
-        el.classList.add(snap.board[name] ? "capture" : "legal");
-      }
-      if (last?.from === name) el.classList.add("last-from");
-      if (last?.to === name) el.classList.add("last-to");
-      if (state.selected && state.legal.some(m => m.to === name)) el.classList.add("trajectory");
-
-      const piece = snap.board[name];
-      if (piece) {
-        const span = document.createElement("span");
-        span.className = "piece";
-        span.textContent = PIECES[piece.color][piece.type];
-        el.appendChild(span);
-      }
-
-      const fileLabel = document.createElement("span");
-      fileLabel.className = "coord file";
-      fileLabel.textContent = file;
-      el.appendChild(fileLabel);
-
-      const rankLabel = document.createElement("span");
-      rankLabel.className = "coord rank";
-      rankLabel.textContent = rank;
-      el.appendChild(rankLabel);
-
-      el.addEventListener("click", () => handleSquare(name));
-      board.appendChild(el);
+            square.addEventListener("click", () => handleSquareClick(squareName));
+            elements.board.appendChild(square);
+        }
     }
-  }
 }
 
-function canUserMove() {
-  if (state.mode === "ai") return state.engine.state.turn === "w" && !state.aiBusy && !state.localGameOver;
-  if (state.mode === "party") {
-    return state.party?.you?.role === (state.party.game.turn === "w" ? "white" : "black")
-      && !state.party.gameOverReason;
-  }
-  return false;
+function formatStatus() {
+    if (appState.gameOver) return getGameOverMessage();
+    const status = currentStatus();
+    if (status.phase === "checkmate") return "Checkmate";
+    if (status.phase === "draw") return "Draw";
+    if (status.check) return appState.engine.state.turn === "w" ? "White is in check" : "Black is in check";
+    return appState.engine.state.turn === "w" ? "White to move" : "Black to move";
 }
 
-function handleSquare(name) {
-  if (!canUserMove()) return;
-
-  const snap = snapshot();
-  const piece = snap.board[name];
-
-  if (state.selected) {
-    const candidate = state.legal.filter(m => m.to === name);
-    if (candidate.length) {
-      if (candidate.some(m => m.promotion)) {
-        state.pendingPromotion = { from: state.selected, to: name };
-        $("promotionModal").classList.remove("hidden");
-      } else {
-        playMove(state.selected, name, candidate[0].promotion || null);
-      }
-      return;
+function getGameOverMessage() {
+    const snapshot = appState.partySnapshot;
+    if (!snapshot) return appState.gameOverMessage || "Game over.";
+    const { gameOverReason: reason, winner } = snapshot;
+    switch (reason) {
+        case "timeout": return winner === "w" ? "White wins on time." : "Black wins on time.";
+        case "checkmate": return winner === "w" ? "White wins by checkmate." : "Black wins by checkmate.";
+        case "draw": return "Draw.";
+        default: return appState.gameOverMessage || "Game over.";
     }
-  }
-
-  if (piece && piece.color === snap.turn) {
-    state.selected = name;
-    if (state.mode === "ai") state.legal = state.engine.movesFrom(name);
-    else state.legal = state.partyEngineMoves(name);
-  } else {
-    resetSelection();
-  }
-  renderBoard();
-  updateStatus();
 }
 
-function partyEngineMoves(from) {
-  // The server is authoritative. The snapshot contains enough board state to
-  // calculate normal movement hints locally; the server validates the final move.
-  const temp = new ChessEngine();
-  temp.state = JSON.parse(JSON.stringify({
-    board: state.party.game.board,
-    turn: state.party.game.turn,
-    castling: state.party.game.castling,
-    ep: state.party.game.ep,
-    halfmove: state.party.game.halfmove,
-    fullmove: state.party.game.fullmove,
-    lastMove: state.party.game.lastMove
-  }));
-  return temp.movesFrom(from);
+function renderRoster() {
+    if (appState.mode === "ai") {
+        const human = appState.playerName || "You";
+        const whiteName = appState.playerColor === "w" ? human : `Computer (${appState.aiLevel})`;
+        const blackName = appState.playerColor === "b" ? human : `Computer (${appState.aiLevel})`;
+        if (elements.whitePlayerLabel) elements.whitePlayerLabel.textContent = whiteName;
+        if (elements.blackPlayerLabel) elements.blackPlayerLabel.textContent = blackName;
+        if (elements.rosterWhite) elements.rosterWhite.textContent = whiteName;
+        if (elements.rosterBlack) elements.rosterBlack.textContent = blackName;
+        if (elements.spectatorList) elements.spectatorList.innerHTML = "<li>None in AI mode</li>";
+        if (elements.spectatorCount) elements.spectatorCount.textContent = "0 / 20";
+        return;
+    }
+    const white = appState.partySnapshot?.players?.white;
+    const black = appState.partySnapshot?.players?.black;
+    const whiteName = white ? `${white.name}${white.connected ? "" : " · offline"}` : "Open seat";
+    const blackName = black ? `${black.name}${black.connected ? "" : " · offline"}` : "Open seat";
+
+    if (elements.whitePlayerLabel) elements.whitePlayerLabel.textContent = whiteName;
+    if (elements.blackPlayerLabel) elements.blackPlayerLabel.textContent = blackName;
+    if (elements.rosterWhite) elements.rosterWhite.textContent = whiteName;
+    if (elements.rosterBlack) elements.rosterBlack.textContent = blackName;
+
+    const spectators = appState.partySnapshot?.spectators || [];
+    if (elements.spectatorCount) elements.spectatorCount.textContent = `${spectators.length} / 20`;
+    if (!elements.spectatorList) return;
+
+    if (!spectators.length) elements.spectatorList.innerHTML = "<li>None yet</li>";
+    else elements.spectatorList.innerHTML = spectators.map(s => `<li>${escapeHtml(s.name)}${s.connected ? "" : " · offline"}</li>`).join("");
 }
 
-async function playMove(from, to, promotion = null) {
-  resetSelection();
-  $("promotionModal").classList.add("hidden");
+function renderPartySummary() {
+    if (!elements.partySummary) return;
+    if (!appState.party) {
+        elements.partySummary.textContent = "Create a room to become White. The next player joins as Black. Up to 20 spectators can watch live.";
+        return;
+    }
+    const role = appState.party.role;
+    const roleText = role === "white" ? "playing as White" : role === "black" ? "playing as Black" : "watching as a spectator";
+    const timeLabel = appState.partySnapshot?.timeControl?.label || "Без часов";
+    elements.partySummary.textContent = `Party ${appState.party.code} · ${roleText}. ${timeLabel}.`;
+}
 
-  if (state.mode === "ai") {
-    const result = state.engine.makeMove({ from, to, promotion: promotion || "q" });
+function renderClocks() {
+    let clocks, timeControl;
+    if (appState.mode === "party") {
+        clocks = appState.partySnapshot?.clocks;
+        timeControl = appState.partySnapshot?.timeControl;
+    } else {
+        clocks = appState.localClocks;
+        timeControl = { initial: getTimeControlSeconds(appState.aiTimeControl), label: elements.aiTimeControl?.selectedOptions?.[0]?.textContent || "Без часов" };
+    }
+
+    const enabled = Boolean(timeControl?.initial > 0);
+    if (!enabled) {
+        if (elements.whiteClock) { elements.whiteClock.textContent = "∞"; elements.whiteClock.classList.remove("active", "low"); }
+        if (elements.blackClock) { elements.blackClock.textContent = "∞"; elements.blackClock.classList.remove("active", "low"); }
+        return;
+    }
+
+    const white = clocks?.white ?? 0, black = clocks?.black ?? 0;
+    if (elements.whiteClock) {
+        elements.whiteClock.textContent = formatClock(white);
+        elements.whiteClock.classList.toggle("active", clocks?.turn === "w" && clocks?.running);
+        elements.whiteClock.classList.toggle("low", white <= 10);
+    }
+    if (elements.blackClock) {
+        elements.blackClock.textContent = formatClock(black);
+        elements.blackClock.classList.toggle("active", clocks?.turn === "b" && clocks?.running);
+        elements.blackClock.classList.toggle("low", black <= 10);
+    }
+}
+
+function renderConnectionBadge() {
+    if (!elements.connectionBadge) return;
+    if (appState.mode === "ai") {
+        elements.connectionBadge.textContent = appState.isAiThinking ? "Computer thinking" : `AI: ${appState.aiLevel}`;
+        return;
+    }
+    if (!appState.party) { elements.connectionBadge.textContent = "Party idle"; return; }
+    const role = appState.party.role === "white" ? "White" : appState.party.role === "black" ? "Black" : "Spectator";
+    elements.connectionBadge.textContent = `Party ${appState.party.code} · ${role}`;
+}
+
+function render() {
+    renderBoard();
+    renderRoster();
+    renderPartySummary();
+    renderClocks();
+    renderConnectionBadge();
+
+    const status = formatStatus();
+    if (elements.turnBadge) elements.turnBadge.textContent = status;
+    if (elements.statusMessage) elements.statusMessage.textContent = status;
+    
+    elements.copyInviteButton?.classList.toggle("hidden", !appState.party);
+    elements.leavePartyButton?.classList.toggle("hidden", !appState.party);
+}
+
+function openPromotionDialog(moves) {
+    appState.pendingPromotionMoves = moves;
+    if (!elements.promotionOptions) return;
+    elements.promotionOptions.innerHTML = "";
+    
+    for (const move of moves) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "promotion-button";
+        const promotion = String(move.promotion || "Q").toUpperCase();
+        button.textContent = PIECE_GLYPHS[move.color][promotion];
+        
+        button.addEventListener("click", () => {
+            closePromotionDialog();
+            submitMove(move);
+        });
+        elements.promotionOptions.appendChild(button);
+    }
+    elements.promotionDialog?.classList.remove("hidden");
+}
+
+function closePromotionDialog() {
+    appState.pendingPromotionMoves = null;
+    elements.promotionDialog?.classList.add("hidden");
+}
+
+async function submitMove(move) {
+    if (appState.gameOver) return;
+    clearSelection();
+
+    if (appState.mode === "party" && appState.party) {
+        const response = await postJson("/api/party/move", {
+            partyCode: appState.party.code, clientId: appState.party.clientId,
+            from: move.from, to: move.to, promotion: move.promotion || null,
+        });
+
+        if (!response.ok) {
+            if (response.party) hydratePartyState(response.party, false);
+            showToast(response.error || "Move rejected.", "error");
+            return;
+        }
+        hydratePartyState(response.party, false);
+        return;
+    }
+
+    const result = appState.engine.makeMove({ from: move.from, to: move.to, promotion: move.promotion || null });
     if (!result.ok) {
-      toast(result.error);
-      renderBoard();
-      return;
+        showToast(result.error || "Illegal move.", "error");
+        return;
     }
-    renderAll();
-    if (!state.engine.getStatus().phase.match(/checkmate|draw/)) {
-      state.aiBusy = true;
-      renderAll();
-      setTimeout(aiMove, 220);
-    }
-    return;
-  }
 
-  try {
-    const response = await fetch("/api/party/move", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        partyCode: state.party.code,
-        clientId: state.clientId,
-        from, to, promotion: promotion || "q"
-      })
+    updateAiClockAfterMove();
+    render();
+    scheduleAiTurn();
+}
+
+function handleSquareClick(square) {
+    if (appState.pendingPromotionMoves || appState.gameOver) return;
+    if (!isHumanTurn()) {
+        clearSelection();
+        renderBoard();
+        return;
+    }
+
+    const piece = appState.engine.getPiece(square);
+    if (appState.selectedSquare) {
+        const matchingMoves = getLegalMovesForSelected().filter(move => move.to === square);
+        if (matchingMoves.length === 1) { submitMove(matchingMoves[0]); return; }
+        if (matchingMoves.length > 1) { openPromotionDialog(matchingMoves); return; }
+    }
+
+    const humanColor = currentHumanColor();
+    if (piece && piece.color === humanColor && piece.color === appState.engine.state.turn) {
+        appState.selectedSquare = appState.selectedSquare === square ? null : square;
+        renderBoard();
+        return;
+    }
+    clearSelection();
+    renderBoard();
+}
+
+function scheduleAiTurn() {
+    stopAiMoveTimer();
+    if (appState.mode !== "ai") return;
+    
+    const status = currentStatus();
+    if (!status || status.phase !== "playing" || appState.gameOver || appState.engine.state.turn === appState.playerColor) {
+        appState.isAiThinking = false;
+        render();
+        return;
+    }
+
+    appState.isAiThinking = true;
+    render();
+
+    appState.aiMoveTimer = window.setTimeout(() => {
+        appState.aiMoveTimer = null;
+        if (appState.mode !== "ai" || appState.gameOver) {
+            appState.isAiThinking = false;
+            render();
+            return;
+        }
+
+        const move = chooseComputerMove(appState.engine, appState.aiLevel);
+        appState.isAiThinking = false;
+        if (!move) { render(); return; }
+        submitMove(move);
+    }, 400);
+}
+
+function stopAiMoveTimer() {
+    if (appState.aiMoveTimer) { window.clearTimeout(appState.aiMoveTimer); appState.aiMoveTimer = null; }
+    appState.isAiThinking = false;
+}
+
+function startAiClock() {
+    stopAiClock();
+    const seconds = getTimeControlSeconds(appState.aiTimeControl);
+    appState.localClocks = { white: seconds, black: seconds, running: seconds > 0, turn: appState.engine.state.turn, lastTick: Date.now() };
+    render();
+
+    if (!seconds) return;
+    appState.aiClockTimer = window.setInterval(() => { updateAiClock(); renderClocks(); }, 250);
+}
+
+function stopAiClock() {
+    if (appState.aiClockTimer) { window.clearInterval(appState.aiClockTimer); appState.aiClockTimer = null; }
+}
+
+function updateAiClock() {
+    if (appState.mode !== "ai" || appState.gameOver || !appState.localClocks.running) return;
+    const clocks = appState.localClocks;
+    const now = Date.now();
+    const elapsed = Math.max(0, (now - clocks.lastTick) / 1000);
+    if (!elapsed) return;
+
+    clocks.lastTick = now;
+    const key = clocks.turn === "w" ? "white" : "black";
+    clocks[key] = Math.max(0, clocks[key] - elapsed);
+
+    if (clocks[key] <= 0) {
+        clocks.running = false;
+        appState.gameOver = true;
+        appState.gameOverMessage = clocks.turn === "w" ? "Black wins on time." : "White wins on time.";
+        stopAiClock();
+        showToast(appState.gameOverMessage, "error");
+        render();
+    }
+}
+
+function updateAiClockAfterMove() {
+    const clocks = appState.localClocks;
+    if (!clocks.running) return;
+    updateAiClock();
+    if (appState.gameOver) return;
+
+    const key = clocks.turn === "w" ? "white" : "black";
+    clocks[key] += getIncrementForTimeControl(appState.aiTimeControl);
+    clocks.turn = appState.engine.state.turn;
+    clocks.lastTick = Date.now();
+}
+
+function resetLocalGame() {
+    stopAiMoveTimer();
+    stopAiClock();
+    closePromotionDialog();
+    appState.engine = new ChessEngine();
+    appState.partySnapshot = null;
+    appState.orientation = appState.playerColor;
+    appState.gameOver = false;
+    appState.gameOverMessage = null;
+    startAiClock();
+    scheduleAiTurn();
+    render();
+}
+
+async function postJson(url, body) {
+    try {
+        const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) return { ok: false, error: `Server returned ${response.status} instead of JSON.` };
+        return await response.json();
+    } catch (error) {
+        return { ok: false, error: error instanceof Error ? error.message : "Network error." };
+    }
+}
+
+function hydratePartyState(partyPayload, announce = true) {
+    if (!partyPayload) return;
+    const previousCode = appState.party?.code;
+    const previousClientId = appState.party?.clientId;
+
+    appState.party = {
+        code: partyPayload.code,
+        clientId: partyPayload.you?.id || previousClientId || null,
+        role: partyPayload.you?.role || appState.party?.role || "spectator",
+    };
+
+    appState.partySnapshot = partyPayload;
+    appState.engine = new ChessEngine(partyPayload.game);
+    appState.gameOver = Boolean(partyPayload.gameOverReason);
+    appState.gameOverMessage = appState.gameOver ? getGameOverMessage() : null;
+
+    if (appState.party.role === "white") appState.orientation = "w";
+    else if (appState.party.role === "black") appState.orientation = "b";
+
+    setMode("party");
+    updatePartyUrl(partyPayload.code);
+    render();
+
+    if (announce && partyPayload.gameOverReason) showToast(getGameOverMessage(), "success");
+}
+
+function connectPartyStream() {
+    if (!appState.party) return;
+    closePartyStream();
+    
+    const { code, clientId } = appState.party;
+    const url = `/api/party/events?partyCode=${encodeURIComponent(code)}&clientId=${encodeURIComponent(clientId)}`;
+    const stream = new EventSource(url);
+    
+    stream.addEventListener("party", event => {
+        try { hydratePartyState(JSON.parse(event.data), false); } catch (error) { console.error("Party SSE error:", error); }
     });
-    const data = await response.json();
-    if (!data.ok) toast(data.error || "Ход не выполнен.");
-    if (data.party) applyParty(data.party);
-  } catch {
-    toast("Нет соединения с сервером.");
-  }
+    
+    stream.onerror = () => {
+        if (appState.mode === "party" && elements.connectionBadge) elements.connectionBadge.textContent = `Party ${code} · reconnecting`;
+    };
+    appState.partyStream = stream;
 }
 
-function aiMove() {
-  const moves = state.engine.legalMoves("b");
-  if (!moves.length) {
-    state.aiBusy = false;
-    renderAll();
-    return;
-  }
-
-  // Small deterministic evaluation: captures, promotion, checks, center.
-  let best = moves[0];
-  let bestScore = -Infinity;
-
-  for (const move of moves) {
-    const piece = state.engine.state.board[move.from];
-    const captured = state.engine.state.board[move.to];
-    let score = Math.random() * 0.15;
-    if (captured) score += VALUES[captured.type] * 2.5;
-    if (move.promotion) score += 9;
-    if (["d4","e4","d5","e5"].includes(move.to)) score += .5;
-    if (piece?.type === "p" && Math.abs(Number(move.to[1]) - Number(move.from[1])) === 2) score += .1;
-    if (score > bestScore) { bestScore = score; best = move; }
-  }
-
-  state.engine.makeMove({
-    from: best.from,
-    to: best.to,
-    promotion: best.promotion || "q"
-  });
-  state.aiBusy = false;
-  renderAll();
-}
-
-function renderMoves(snap) {
-  const list = $("movesList");
-  list.innerHTML = "";
-  const moves = snap.moves || [];
-
-  for (let i = 0; i < moves.length; i += 2) {
-    const row = document.createElement("div");
-    row.className = "move";
-    row.innerHTML = `
-      <span class="move-number">${Math.floor(i/2)+1}.</span>
-      <span>${escapeHtml(moves[i]?.san || "")}</span>
-      <span>${escapeHtml(moves[i+1]?.san || "")}</span>
-    `;
-    list.appendChild(row);
-  }
-  $("moveCount").textContent = moves.length;
-  list.scrollTop = list.scrollHeight;
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({
-    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-  }[c]));
-}
-
-function renderMaterial(snap) {
-  const mat = snap.material || { captured:{w:[],b:[]},score:{w:0,b:0} };
-  const icon = (color, type) => PIECES[color][type];
-  $("material").innerHTML = `
-    <span>${mat.captured.w.map(p => icon("w",p)).join("") || "—"}</span>
-    <b>Δ ${mat.score.w - mat.score.b}</b>
-    <span>${mat.captured.b.map(p => icon("b",p)).join("") || "—"}</span>
-  `;
-}
-
-function updateStatus() {
-  const snap = snapshot();
-  if (!snap) return;
-
-  const status = snap.status || { phase:"playing", turn:snap.turn };
-  let text = state.selected ? "Выберите клетку назначения." : "Выберите фигуру.";
-
-  if (status.phase === "check") text = "Шах.";
-  if (status.phase === "checkmate") text = "Мат.";
-  if (status.phase === "draw") text = `Ничья: ${status.reason || "правило"}.`;
-  if (state.mode === "ai" && state.aiBusy) text = "ИИ думает…";
-  if (state.mode === "ai" && state.localGameOver) text = "Партия завершена сдачей.";
-  if (state.mode === "party" && state.party?.gameOverReason === "resign") text = "Партия завершена сдачей.";
-  if (state.mode === "party" && state.party?.gameOverReason === "timeout") text = "Время закончилось.";
-  if (state.mode === "party" && state.party?.drawOffer) text = `${state.party.drawOffer.name} предложил(а) ничью.`;
-
-  $("gameStatus").textContent = text;
-  $("turnBadge").textContent = snap.turn === "w" ? "Ход белых" : "Ход чёрных";
-}
-
-function renderPlayers() {
-  if (state.mode === "ai") {
-    $("whiteName").textContent = "Вы";
-    $("blackName").textContent = "ИИ";
-    $("whiteMeta").textContent = "Белые";
-    $("blackMeta").textContent = "Чёрные";
-    $("whiteClock").textContent = "—";
-    $("blackClock").textContent = "—";
-    return;
-  }
-
-  const p = state.party;
-  $("whiteName").textContent = p.players.white?.name || "Ожидание…";
-  $("blackName").textContent = p.players.black?.name || "Ожидание…";
-  $("whiteMeta").textContent = p.players.white?.connected ? "Белые • онлайн" : "Белые • офлайн";
-  $("blackMeta").textContent = p.players.black?.connected ? "Чёрные • онлайн" : "Чёрные • офлайн";
-  $("whiteClock").textContent = formatClock(p.clocks.white, p.timeControl.initial);
-  $("blackClock").textContent = formatClock(p.clocks.black, p.timeControl.initial);
-}
-
-function formatClock(seconds, enabled) {
-  if (!enabled) return "—";
-  const total = Math.max(0, Math.ceil(seconds));
-  const m = Math.floor(total / 60);
-  const s = total % 60;
-  return `${String(m).padStart(2,"0")}:${String(s).padStart(2,"0")}`;
-}
-
-function renderAll() {
-  renderBoard();
-  renderMoves(snapshot());
-  renderMaterial(snapshot());
-  renderPlayers();
-  updateStatus();
-}
-
-function startAI() {
-  closeParty();
-  state.mode = "ai";
-  state.engine = new ChessEngine();
-  state.orientation = "w";
-  state.localGameOver = false;
-  resetSelection();
-  $("chatPanel").classList.add("hidden");
-  show("game");
-  renderAll();
+function closePartyStream() {
+    if (appState.partyStream) { appState.partyStream.close(); appState.partyStream = null; }
 }
 
 async function createParty() {
-  const name = $("nameInput").value.trim() || "Guest";
-  const timeControl = $("timeControl").value;
-  await enterParty("/api/party/create", { name, timeControl });
+    if (appState.party) await leaveParty(true);
+    const timeControl = elements.partyTimeControl?.value || "10+0";
+    const response = await postJson("/api/party/create", { name: appState.playerName, timeControl });
+    if (!response.ok) { showToast(response.error || "Unable to create party.", "error"); return; }
+    
+    setStoredPartyId(response.party.code, response.clientId);
+    hydratePartyState(response.party, false);
+    connectPartyStream();
+    showToast(`Party ${response.party.code} created.`, "success");
 }
 
-async function joinParty() {
-  const name = $("nameInput").value.trim() || "Guest";
-  const partyCode = $("partyCodeInput").value.trim().toUpperCase();
-  if (!partyCode) {
-    $("setupError").textContent = "Введите код комнаты.";
-    return;
-  }
-  await enterParty("/api/party/join", { name, partyCode, clientId: state.clientId });
+async function joinParty(code) {
+    const normalizedCode = String(code || "").trim().toUpperCase();
+    if (!normalizedCode) { showToast("Enter a party code first.", "error"); return; }
+    if (appState.party?.code === normalizedCode) { showToast(`You are already in party ${normalizedCode}.`); return; }
+    if (appState.party) await leaveParty(true);
+
+    const storedIds = getStoredPartyIds();
+    const response = await postJson("/api/party/join", { name: appState.playerName, partyCode: normalizedCode, clientId: storedIds[normalizedCode] || null });
+    
+    if (!response.ok) { showToast(response.error || "Unable to join party.", "error"); return; }
+    setStoredPartyId(response.party.code, response.clientId);
+    hydratePartyState(response.party, false);
+    connectPartyStream();
+    showToast(`Joined party ${response.party.code}.`, "success");
 }
 
-async function enterParty(url, body) {
-  $("setupError").textContent = "";
-  try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body)
+async function leaveParty(silent = false) {
+    if (!appState.party) return;
+    const party = appState.party;
+    closePartyStream();
+    await postJson("/api/party/leave", { partyCode: party.code, clientId: party.clientId });
+    removeStoredPartyId(party.code);
+    
+    appState.party = null; appState.partySnapshot = null;
+    updatePartyUrl(null);
+    setMode("ai");
+    resetLocalGame();
+    if (!silent) showToast("Left the party room.");
+}
+
+async function copyInviteLink() {
+    if (!appState.party) return;
+    const inviteUrl = `${window.location.origin}${window.location.pathname}?party=${encodeURIComponent(appState.party.code)}`;
+    try { await navigator.clipboard.writeText(inviteUrl); showToast("Invite link copied.", "success"); }
+    catch { showToast(`Party code: ${appState.party.code}`); }
+}
+
+function getStoredPartyIds() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.partyIds) || "{}"); } catch { return {}; }
+}
+function setStoredPartyId(code, clientId) {
+    if (!code || !clientId) return;
+    const ids = getStoredPartyIds();
+    ids[code] = clientId;
+    localStorage.setItem(STORAGE_KEYS.partyIds, JSON.stringify(ids));
+}
+function removeStoredPartyId(code) {
+    if (!code) return;
+    const ids = getStoredPartyIds();
+    delete ids[code];
+    localStorage.setItem(STORAGE_KEYS.partyIds, JSON.stringify(ids));
+}
+
+function bindEvents() {
+    elements.playerNameInput?.addEventListener("input", event => {
+        appState.playerName = event.target.value.trim() || "Guest";
+        localStorage.setItem(STORAGE_KEYS.name, appState.playerName);
+        renderRoster();
     });
-    const data = await response.json();
-    if (!data.ok) {
-      $("setupError").textContent = data.error || "Ошибка.";
-      return;
+
+    elements.aiLevelSelect?.addEventListener("change", event => { appState.aiLevel = event.target.value; render(); });
+    elements.playerColorSelect?.addEventListener("change", event => { appState.playerColor = event.target.value; if (appState.mode === "ai") resetLocalGame(); });
+    elements.aiTimeControl?.addEventListener("change", event => { appState.aiTimeControl = event.target.value; if (appState.mode === "ai") resetLocalGame(); });
+
+    elements.modeAiButton?.addEventListener("click", async () => {
+        if (appState.party) await leaveParty(true);
+        setMode("ai"); resetLocalGame();
+    });
+    
+    elements.modePartyButton?.addEventListener("click", () => { setMode("party"); render(); });
+    
+    elements.startAiButton?.addEventListener("click", async () => {
+        if (appState.party) await leaveParty(true);
+        setMode("ai"); resetLocalGame();
+        showToast("New AI game ready.", "success");
+    });
+    
+    // Binding the top toolbar New Game button
+    elements.newGameToolbarButton?.addEventListener("click", async () => {
+        if (appState.party) await leaveParty(true);
+        setMode("ai"); resetLocalGame();
+        showToast("Новая игра", "success");
+    });
+
+    elements.createPartyButton?.addEventListener("click", createParty);
+    elements.joinPartyButton?.addEventListener("click", () => joinParty(elements.partyCodeInput?.value));
+    elements.leavePartyButton?.addEventListener("click", () => leaveParty(false));
+    elements.copyInviteButton?.addEventListener("click", copyInviteLink);
+    
+    elements.flipBoardButton?.addEventListener("click", () => {
+        appState.orientation = appState.orientation === "w" ? "b" : "w";
+        renderBoard();
+    });
+
+    elements.partyCodeInput?.addEventListener("input", event => event.target.value = event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""));
+    elements.partyCodeInput?.addEventListener("keydown", event => { if (event.key === "Enter") { event.preventDefault(); joinParty(elements.partyCodeInput.value); }});
+    elements.promotionDialog?.addEventListener("click", event => { if (event.target === elements.promotionDialog) closePromotionDialog(); });
+    window.addEventListener("beforeunload", () => { stopAiMoveTimer(); stopAiClock(); closePartyStream(); });
+}
+
+async function init() {
+    bindEvents();
+    const savedName = localStorage.getItem(STORAGE_KEYS.name);
+    if (savedName) {
+        appState.playerName = savedName;
+        if (elements.playerNameInput) elements.playerNameInput.value = savedName;
     }
-
-    state.mode = "party";
-    state.party = data.party;
-    state.orientation = state.party.you?.role === "black" ? "b" : "w";
-    resetSelection();
-    $("chatPanel").classList.remove("hidden");
-    show("game");
-    connectEvents();
-    renderAll();
-  } catch {
-    $("setupError").textContent = "Сервер недоступен.";
-  }
-}
-
-function connectEvents() {
-  if (state.eventSource) state.eventSource.close();
-  state.eventSource = new EventSource(
-    `/api/party/events?partyCode=${encodeURIComponent(state.party.code)}&clientId=${encodeURIComponent(state.clientId)}`
-  );
-  state.eventSource.addEventListener("party", e => {
-    try { applyParty(JSON.parse(e.data)); } catch {}
-  });
-  state.eventSource.onerror = () => {};
-}
-
-function applyParty(party) {
-  state.party = party;
-  // Important: orientation is never changed by a received move.
-  // It only changes when the user presses "Повернуть".
-  renderAll();
-  renderChat();
-}
-
-function renderChat() {
-  if (state.mode !== "party") return;
-  const box = $("chatMessages");
-  box.innerHTML = "";
-  for (const msg of state.party.chat || []) {
-    const row = document.createElement("div");
-    row.className = "chat-message";
-    row.innerHTML = `<b>${escapeHtml(msg.name)}</b> <span>${escapeHtml(msg.text)}</span>`;
-    box.appendChild(row);
-  }
-  box.scrollTop = box.scrollHeight;
-}
-
-async function partyAction(endpoint) {
-  if (!state.party) return;
-  try {
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ partyCode: state.party.code, clientId: state.clientId })
-    });
-    const data = await response.json();
-    if (!data.ok) toast(data.error || "Операция не выполнена.");
-    if (data.party) applyParty(data.party);
-  } catch {
-    toast("Нет соединения с сервером.");
-  }
-}
-
-function newGame() {
-  if (state.mode === "ai") {
-    state.engine = new ChessEngine();
-    state.aiBusy = false;
-    state.localGameOver = false;
-    state.orientation = "w";
-    resetSelection();
-    renderAll();
-    return;
-  }
-
-  if (state.mode === "party") {
-    partyAction("/api/party/rematch");
-    return;
-  }
-
-  $("partySetup").classList.add("hidden");
-  show("home");
-}
-
-function closeParty() {
-  state.eventSource?.close();
-  state.eventSource = null;
-  state.party = null;
-}
-
-function backHome() {
-  if (state.mode === "party") {
-    partyAction("/api/party/leave");
-    closeParty();
-  }
-  state.mode = null;
-  state.engine = new ChessEngine();
-  resetSelection();
-  $("partySetup").classList.add("hidden");
-  show("home");
-}
-
-$("newGameBtn").addEventListener("click", newGame);
-$("flipBtn").addEventListener("click", () => {
-  state.orientation = state.orientation === "w" ? "b" : "w";
-  renderBoard();
-});
-$("backHomeBtn").addEventListener("click", backHome);
-$("resignBtn").addEventListener("click", () => {
-  if (state.mode === "party") partyAction("/api/party/resign");
-  else {
-    const snap = state.engine.getSnapshot();
-    if (!snap.status.phase.match(/checkmate|draw/)) {
-      state.localGameOver = true;
-    state.aiBusy = false;
-    resetSelection();
-    renderAll();
-    toast("Вы сдались.");
+    const params = new URLSearchParams(window.location.search);
+    const partyCode = params.get("party");
+    if (partyCode) {
+        setMode("party");
+        if (elements.partyCodeInput) elements.partyCodeInput.value = partyCode.toUpperCase();
+        await joinParty(partyCode);
+        return;
     }
-  }
-});
-$("drawBtn").addEventListener("click", () => {
-  if (state.mode === "party") partyAction("/api/party/draw");
-  else toast("Предложение ничьей доступно в Party.");
-});
-$("rematchBtn").addEventListener("click", newGame);
+    setMode("ai");
+    resetLocalGame();
+}
 
-document.querySelectorAll(".mode-card").forEach(btn => {
-  btn.addEventListener("click", () => {
-    if (btn.dataset.mode === "ai") startAI();
-    else $("partySetup").classList.remove("hidden");
-  });
-});
-
-$("createPartyBtn").addEventListener("click", createParty);
-$("joinPartyBtn").addEventListener("click", joinParty);
-$("partyCodeInput").addEventListener("input", e => {
-  e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,"");
-});
-
-$("chatForm").addEventListener("submit", async e => {
-  e.preventDefault();
-  if (!state.party) return;
-  const input = $("chatInput");
-  const text = input.value.trim();
-  if (!text) return;
-  input.value = "";
-  try {
-    await fetch("/api/party/chat", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({
-        partyCode:state.party.code,
-        clientId:state.clientId,
-        text
-      })
-    });
-  } catch {
-    toast("Не удалось отправить сообщение.");
-  }
-});
-
-document.querySelectorAll("[data-promotion]").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const p = state.pendingPromotion;
-    if (!p) return;
-    state.pendingPromotion = null;
-    playMove(p.from, p.to, btn.dataset.promotion);
-  });
-});
-
-show("home");
+init();
 
