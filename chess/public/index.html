@@ -1,82 +1,177 @@
 <!doctype html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
 
-    <title>Chess Party | Играть в шахматы онлайн</title>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    >
+
+    <meta
+        name="theme-color"
+        content="#0f172a"
+    >
+
+    <meta
+        name="color-scheme"
+        content="dark light"
+    >
+
+    <title>Chess Party</title>
 
     <meta
         name="description"
         content="Chess Party — шахматы против компьютера или с другом."
     >
 
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link
-        rel="stylesheet"
-        href="https://fonts.bunny.net/css?family=inter:400,500,600,700,800&display=swap"
-    >
+    <!-- =====================================================
+         НАСТРОЙКИ РЕПОЗИТОРИЯ
+         
+         Здесь меняешь только эти две строки:
+         
+         1. REPOSITORY_LOGO_URL
+            URL логотипа твоего репозитория
 
-    <link rel="stylesheet" href="/styles.css">
+         2. REPOSITORY_URL
+            URL самого репозитория
+    ====================================================== -->
+
+    <script>
+        window.CHESS_PARTY_CONFIG = {
+
+            REPOSITORY_LOGO_URL:
+                "https://example.com/logo.png",
+
+            REPOSITORY_URL:
+                "https://example.com/repository"
+
+        };
+    </script>
+
+
+    <!-- Favicon -->
 
     <link
         rel="icon"
         type="image/png"
         href="https://cdn-icons-png.flaticon.com/512/823/823301.png"
     >
+
+
+    <!-- Основные стили -->
+
+    <link
+        rel="stylesheet"
+        href="/styles.css"
+    >
+
 </head>
+
 
 <body>
 
 <div class="page-shell">
 
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
     <header class="main-header">
+
         <h1>
-            <span class="chess-icon">♞</span>
-            Chess Party
+
+            <span
+                class="chess-icon"
+                aria-hidden="true"
+            >
+                ♞
+            </span>
+
+            <span>
+                Chess Party
+            </span>
+
         </h1>
+
     </header>
+
+
+    <!-- =====================================================
+         MAIN
+    ====================================================== -->
 
     <main class="app-grid">
 
+
+        <!-- =================================================
+             BOARD
+        ================================================== -->
+
         <section class="board-panel panel">
+
 
             <div class="board-toolbar">
 
+
                 <div class="mode-info">
-                    <p class="label">Текущий режим</p>
-                    <h2 id="modeBadge">AI Арена</h2>
+
+                    <p
+                        class="label"
+                        data-i18n="currentMode"
+                    >
+                        Текущий режим
+                    </p>
+
+                    <h2 id="modeBadge">
+                        AI Арена
+                    </h2>
+
                 </div>
 
+
                 <div class="toolbar-actions">
+
 
                     <button
                         id="newGameToolbarButton"
                         class="secondary-button"
                         type="button"
+                        data-i18n="newGame"
                     >
                         Новая игра
                     </button>
+
 
                     <button
                         id="flipBoardButton"
                         class="icon-button"
                         type="button"
                         title="Перевернуть доску"
+                        aria-label="Перевернуть доску"
                     >
                         ⇅
                     </button>
+
 
                     <button
                         id="copyInviteButton"
                         class="secondary-button hidden"
                         type="button"
+                        data-i18n="invite"
                     >
                         Инвайт
                     </button>
 
+
                 </div>
+
             </div>
+
+
+            <!-- Chess board -->
 
             <div class="board-stage">
 
@@ -88,10 +183,21 @@
 
             </div>
 
+
+            <!-- Game status -->
+
             <div class="status-strip">
 
+
                 <div class="status-text">
-                    <p class="label">Статус игры</p>
+
+                    <p
+                        class="label"
+                        data-i18n="gameStatus"
+                    >
+                        Статус игры
+                    </p>
+
 
                     <p
                         id="statusMessage"
@@ -99,9 +205,12 @@
                     >
                         Выберите режим и начните игру.
                     </p>
+
                 </div>
 
+
                 <div class="status-meta">
+
 
                     <span
                         id="turnBadge"
@@ -110,6 +219,7 @@
                         Ход белых
                     </span>
 
+
                     <span
                         id="connectionBadge"
                         class="status-chip connection-solo"
@@ -117,79 +227,136 @@
                         Соло
                     </span>
 
+
                 </div>
 
+
             </div>
+
 
         </section>
 
 
+
+        <!-- =================================================
+             SIDEBAR
+        ================================================== -->
+
         <aside class="sidebar">
+
+
+            <!-- SETTINGS -->
 
             <section class="panel">
 
+
                 <div class="panel-head">
-                    <p class="label">Настройки</p>
-                    <h3>Выберите режим</h3>
+
+                    <p
+                        class="label"
+                        data-i18n="settings"
+                    >
+                        Настройки
+                    </p>
+
+                    <h3 data-i18n="chooseMode">
+                        Выберите режим
+                    </h3>
+
                 </div>
 
+
+                <!-- Mode -->
+
                 <div class="mode-switcher">
+
 
                     <button
                         id="modeAiButton"
                         class="mode-button active"
                         type="button"
+                        data-i18n="computer"
                     >
                         С компьютером
                     </button>
+
 
                     <button
                         id="modePartyButton"
                         class="mode-button"
                         type="button"
+                        data-i18n="friend"
                     >
                         С другом
                     </button>
 
+
                 </div>
+
+
+                <!-- Player name -->
 
                 <label class="field">
 
-                    <span>Ваше имя</span>
+                    <span data-i18n="yourName">
+                        Ваше имя
+                    </span>
 
                     <input
                         id="playerNameInput"
                         type="text"
                         maxlength="24"
+                        autocomplete="nickname"
                         placeholder="Введите имя..."
+                        data-i18n-placeholder="namePlaceholder"
                     >
 
                 </label>
 
 
+                <!-- =========================================
+                     AI CONTROLS
+                ========================================== -->
+
                 <div id="aiControls">
+
 
                     <div class="field-grid">
 
+
                         <label class="field">
 
-                            <span>Сложность</span>
+                            <span data-i18n="difficulty">
+                                Сложность
+                            </span>
+
 
                             <select id="aiLevelSelect">
-                                <option value="easy">
+
+                                <option
+                                    value="easy"
+                                    data-i18n="easy"
+                                >
                                     Легкая
                                 </option>
+
 
                                 <option
                                     value="intermediate"
                                     selected
+                                    data-i18n="medium"
                                 >
                                     Средняя
                                 </option>
 
-                                <option value="hard">
+
+                                <option
+                                    value="hard"
+                                    data-i18n="hard"
+                                >
                                     Сложная
                                 </option>
+
                             </select>
 
                         </label>
@@ -197,15 +364,26 @@
 
                         <label class="field">
 
-                            <span>Играть за</span>
+                            <span data-i18n="playAs">
+                                Играть за
+                            </span>
+
 
                             <select id="playerColorSelect">
 
-                                <option value="w" selected>
+                                <option
+                                    value="w"
+                                    selected
+                                    data-i18n="white"
+                                >
                                     Белых
                                 </option>
 
-                                <option value="b">
+
+                                <option
+                                    value="b"
+                                    data-i18n="black"
+                                >
                                     Черных
                                 </option>
 
@@ -213,50 +391,71 @@
 
                         </label>
 
+
                     </div>
 
 
+                    <!-- AI clock -->
+
                     <label class="field">
 
-                        <span>Контроль времени</span>
+                        <span data-i18n="timeControl">
+                            Контроль времени
+                        </span>
+
 
                         <select id="aiClockSelect">
 
-                            <option value="none">
+                            <option
+                                value="none"
+                                data-i18n="noLimit"
+                            >
                                 Без лимита
                             </option>
+
 
                             <option value="1+0">
                                 1 + 0 • Bullet
                             </option>
 
+
                             <option value="3+0">
                                 3 + 0 • Blitz
                             </option>
+
 
                             <option value="3+2">
                                 3 + 2 • Blitz
                             </option>
 
+
                             <option value="5+0">
                                 5 + 0 • Blitz
                             </option>
+
 
                             <option value="5+3">
                                 5 + 3 • Blitz
                             </option>
 
-                            <option value="10+0" selected>
+
+                            <option
+                                value="10+0"
+                                selected
+                            >
                                 10 + 0 • Rapid
                             </option>
+
 
                             <option value="15+10">
                                 15 + 10 • Rapid
                             </option>
 
+
                             <option value="30+0">
                                 30 + 0 • Classical
                             </option>
+
 
                             <option value="30+20">
                                 30 + 20 • Classical
@@ -271,46 +470,63 @@
                         id="startAiButton"
                         class="primary-button"
                         type="button"
+                        data-i18n="startAi"
                     >
                         Начать игру с ИИ
                     </button>
 
+
                 </div>
 
+
+                <!-- =========================================
+                     PARTY CONTROLS
+                ========================================== -->
 
                 <div
                     id="partyControls"
                     class="hidden"
                 >
 
+
                     <button
                         id="createPartyButton"
                         class="primary-button"
                         type="button"
+                        data-i18n="createRoom"
                     >
                         Создать комнату
                     </button>
 
+
                     <label class="field">
 
-                        <span>Код комнаты</span>
+                        <span data-i18n="roomCode">
+                            Код комнаты
+                        </span>
+
 
                         <div class="join-row">
+
 
                             <input
                                 id="partyCodeInput"
                                 type="text"
                                 maxlength="6"
+                                autocomplete="off"
                                 placeholder="ABC123"
                             >
+
 
                             <button
                                 id="joinPartyButton"
                                 class="secondary-button"
                                 type="button"
+                                data-i18n="join"
                             >
                                 Войти
                             </button>
+
 
                         </div>
 
@@ -319,45 +535,63 @@
 
                     <label class="field">
 
-                        <span>Контроль времени</span>
+                        <span data-i18n="timeControl">
+                            Контроль времени
+                        </span>
+
 
                         <select id="partyClockSelect">
 
-                            <option value="none">
+                            <option
+                                value="none"
+                                data-i18n="noLimit"
+                            >
                                 Без лимита
                             </option>
+
 
                             <option value="1+0">
                                 1 + 0 • Bullet
                             </option>
 
+
                             <option value="3+0">
                                 3 + 0 • Blitz
                             </option>
+
 
                             <option value="3+2">
                                 3 + 2 • Blitz
                             </option>
 
+
                             <option value="5+0">
                                 5 + 0 • Blitz
                             </option>
+
 
                             <option value="5+3">
                                 5 + 3 • Blitz
                             </option>
 
-                            <option value="10+0" selected>
+
+                            <option
+                                value="10+0"
+                                selected
+                            >
                                 10 + 0 • Rapid
                             </option>
+
 
                             <option value="15+10">
                                 15 + 10 • Rapid
                             </option>
 
+
                             <option value="30+0">
                                 30 + 0 • Classical
                             </option>
+
 
                             <option value="30+20">
                                 30 + 20 • Classical
@@ -372,9 +606,11 @@
                         id="leavePartyButton"
                         class="ghost-button hidden"
                         type="button"
+                        data-i18n="leaveRoom"
                     >
                         Покинуть комнату
                     </button>
+
 
                     <p
                         id="partySummary"
@@ -383,32 +619,60 @@
                         Создайте комнату, чтобы играть белыми.
                     </p>
 
+
                 </div>
+
 
             </section>
 
 
+
+            <!-- =================================================
+                 PLAYERS
+            ================================================== -->
+
             <section class="panel">
 
+
                 <div class="panel-head">
-                    <p class="label">Участники</p>
-                    <h3>Стол и зрители</h3>
+
+                    <p
+                        class="label"
+                        data-i18n="players"
+                    >
+                        Участники
+                    </p>
+
+                    <h3 data-i18n="tableAndSpectators">
+                        Стол и зрители
+                    </h3>
+
                 </div>
 
 
                 <div class="roster-grid">
 
+
+                    <!-- White -->
+
                     <div class="roster-card white-player">
 
                         <div class="roster-info">
-                            <span class="roster-role">
+
+                            <span
+                                class="roster-role"
+                                data-i18n="white"
+                            >
                                 Белые
                             </span>
+
 
                             <strong id="whitePlayerLabel">
                                 Вы
                             </strong>
+
                         </div>
+
 
                         <div
                             id="whiteClock"
@@ -420,19 +684,26 @@
                     </div>
 
 
+                    <!-- Black -->
+
                     <div class="roster-card black-player">
 
                         <div class="roster-info">
 
-                            <span class="roster-role">
+                            <span
+                                class="roster-role"
+                                data-i18n="black"
+                            >
                                 Черные
                             </span>
+
 
                             <strong id="blackPlayerLabel">
                                 Компьютер
                             </strong>
 
                         </div>
+
 
                         <div
                             id="blackClock"
@@ -443,16 +714,24 @@
 
                     </div>
 
+
                 </div>
 
 
+                <!-- Spectators -->
+
                 <div class="spectator-panel">
+
 
                     <div class="spectator-header">
 
-                        <p class="label">
+                        <p
+                            class="label"
+                            data-i18n="spectators"
+                        >
                             Зрители
                         </p>
+
 
                         <span
                             id="spectatorCount"
@@ -461,27 +740,81 @@
                             0 / 20
                         </span>
 
+
                     </div>
+
 
                     <ul
                         id="spectatorList"
                         class="spectator-list"
                     >
+
                         <li class="empty-state">
                             Пока никого нет
                         </li>
+
                     </ul>
+
 
                 </div>
 
+
             </section>
+
 
         </aside>
 
+
     </main>
+
+
+
+    <!-- =====================================================
+         REPOSITORY FOOTER
+         
+         Логотип и ссылка берутся из
+         window.CHESS_PARTY_CONFIG
+    ====================================================== -->
+
+    <footer class="site-footer">
+
+        <a
+            id="repositoryLink"
+            class="repository-link"
+            href="#"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Repository"
+        >
+
+            <img
+                id="repositoryLogo"
+                class="repository-logo"
+                src=""
+                alt="Repository"
+                loading="lazy"
+                decoding="async"
+            >
+
+            <span
+                class="repository-name"
+                data-i18n="repository"
+            >
+                Репозиторий
+            </span>
+
+        </a>
+
+    </footer>
+
 
 </div>
 
+
+
+<!-- =========================================================
+     TOAST
+========================================================= -->
 
 <div
     id="toastHost"
@@ -490,37 +823,404 @@
 ></div>
 
 
+
+<!-- =========================================================
+     PROMOTION
+========================================================= -->
+
 <div
     id="promotionDialog"
     class="modal hidden"
     role="dialog"
     aria-modal="true"
+    aria-labelledby="promotionTitle"
 >
 
     <div class="modal-card">
 
-        <p class="label">
+
+        <p
+            class="label"
+            data-i18n="promotion"
+        >
             Превращение пешки
         </p>
 
-        <h3>
+
+        <h3
+            id="promotionTitle"
+            data-i18n="choosePiece"
+        >
             Выберите фигуру
         </h3>
+
 
         <div
             id="promotionOptions"
             class="promotion-options"
         ></div>
 
+
     </div>
 
 </div>
 
 
+
+<!-- =========================================================
+     AUTO LANGUAGE + REPOSITORY
+========================================================= -->
+
+<script>
+(function () {
+
+    "use strict";
+
+
+    /* =====================================================
+       TRANSLATIONS
+    ====================================================== */
+
+    const translations = {
+
+        ru: {
+            currentMode: "Текущий режим",
+            newGame: "Новая игра",
+            invite: "Инвайт",
+            gameStatus: "Статус игры",
+            settings: "Настройки",
+            chooseMode: "Выберите режим",
+            computer: "С компьютером",
+            friend: "С другом",
+            yourName: "Ваше имя",
+            namePlaceholder: "Введите имя...",
+            difficulty: "Сложность",
+            easy: "Легкая",
+            medium: "Средняя",
+            hard: "Сложная",
+            playAs: "Играть за",
+            white: "Белые",
+            black: "Черные",
+            timeControl: "Контроль времени",
+            noLimit: "Без лимита",
+            startAi: "Начать игру с ИИ",
+            createRoom: "Создать комнату",
+            roomCode: "Код комнаты",
+            join: "Войти",
+            leaveRoom: "Покинуть комнату",
+            players: "Участники",
+            tableAndSpectators: "Стол и зрители",
+            spectators: "Зрители",
+            repository: "Репозиторий",
+            promotion: "Превращение пешки",
+            choosePiece: "Выберите фигуру"
+        },
+
+        en: {
+            currentMode: "Current mode",
+            newGame: "New game",
+            invite: "Invite",
+            gameStatus: "Game status",
+            settings: "Settings",
+            chooseMode: "Choose mode",
+            computer: "Computer",
+            friend: "Friend",
+            yourName: "Your name",
+            namePlaceholder: "Enter your name...",
+            difficulty: "Difficulty",
+            easy: "Easy",
+            medium: "Medium",
+            hard: "Hard",
+            playAs: "Play as",
+            white: "White",
+            black: "Black",
+            timeControl: "Time control",
+            noLimit: "No limit",
+            startAi: "Start AI game",
+            createRoom: "Create room",
+            roomCode: "Room code",
+            join: "Join",
+            leaveRoom: "Leave room",
+            players: "Players",
+            tableAndSpectators: "Table & spectators",
+            spectators: "Spectators",
+            repository: "Repository",
+            promotion: "Pawn promotion",
+            choosePiece: "Choose a piece"
+        },
+
+        de: {
+            currentMode: "Aktueller Modus",
+            newGame: "Neues Spiel",
+            invite: "Einladen",
+            gameStatus: "Spielstatus",
+            settings: "Einstellungen",
+            chooseMode: "Modus wählen",
+            computer: "Computer",
+            friend: "Freund",
+            yourName: "Dein Name",
+            namePlaceholder: "Name eingeben...",
+            difficulty: "Schwierigkeit",
+            easy: "Leicht",
+            medium: "Mittel",
+            hard: "Schwer",
+            playAs: "Spielen als",
+            white: "Weiß",
+            black: "Schwarz",
+            timeControl: "Zeitkontrolle",
+            noLimit: "Keine Begrenzung",
+            startAi: "KI-Spiel starten",
+            createRoom: "Raum erstellen",
+            roomCode: "Raumcode",
+            join: "Beitreten",
+            leaveRoom: "Raum verlassen",
+            players: "Teilnehmer",
+            tableAndSpectators: "Tisch & Zuschauer",
+            spectators: "Zuschauer",
+            repository: "Repository",
+            promotion: "Bauernumwandlung",
+            choosePiece: "Figur auswählen"
+        },
+
+        zh: {
+            currentMode: "当前模式",
+            newGame: "新游戏",
+            invite: "邀请",
+            gameStatus: "游戏状态",
+            settings: "设置",
+            chooseMode: "选择模式",
+            computer: "电脑",
+            friend: "好友",
+            yourName: "你的名字",
+            namePlaceholder: "输入名字...",
+            difficulty: "难度",
+            easy: "简单",
+            medium: "中等",
+            hard: "困难",
+            playAs: "执棋方",
+            white: "白方",
+            black: "黑方",
+            timeControl: "时间控制",
+            noLimit: "不限时",
+            startAi: "开始 AI 游戏",
+            createRoom: "创建房间",
+            roomCode: "房间代码",
+            join: "加入",
+            leaveRoom: "离开房间",
+            players: "玩家",
+            tableAndSpectators: "棋桌与观众",
+            spectators: "观众",
+            repository: "代码仓库",
+            promotion: "兵升变",
+            choosePiece: "选择棋子"
+        },
+
+        ja: {
+            currentMode: "現在のモード",
+            newGame: "新しいゲーム",
+            invite: "招待",
+            gameStatus: "ゲーム状態",
+            settings: "設定",
+            chooseMode: "モードを選択",
+            computer: "コンピューター",
+            friend: "友達",
+            yourName: "名前",
+            namePlaceholder: "名前を入力...",
+            difficulty: "難易度",
+            easy: "簡単",
+            medium: "普通",
+            hard: "難しい",
+            playAs: "プレイヤー",
+            white: "白",
+            black: "黒",
+            timeControl: "時間設定",
+            noLimit: "時間制限なし",
+            startAi: "AIゲームを開始",
+            createRoom: "ルームを作成",
+            roomCode: "ルームコード",
+            join: "参加",
+            leaveRoom: "ルームを退出",
+            players: "プレイヤー",
+            tableAndSpectators: "対局者と観戦者",
+            spectators: "観戦者",
+            repository: "リポジトリ",
+            promotion: "昇格",
+            choosePiece: "駒を選択"
+        }
+
+    };
+
+
+    /* =====================================================
+       LANGUAGE DETECTION
+    ====================================================== */
+
+    function detectLanguage() {
+
+        const language =
+            navigator.language ||
+            navigator.userLanguage ||
+            "en";
+
+        const normalized =
+            language.toLowerCase();
+
+
+        if (normalized.startsWith("ru")) {
+            return "ru";
+        }
+
+        if (
+            normalized.startsWith("de")
+        ) {
+            return "de";
+        }
+
+        if (
+            normalized.startsWith("zh")
+        ) {
+            return "zh";
+        }
+
+        if (
+            normalized.startsWith("ja")
+        ) {
+            return "ja";
+        }
+
+        return "en";
+    }
+
+
+    const language =
+        detectLanguage();
+
+
+    document.documentElement.lang =
+        language;
+
+
+    /* =====================================================
+       APPLY TRANSLATIONS
+    ====================================================== */
+
+    function applyTranslations() {
+
+        const dictionary =
+            translations[language] ||
+            translations.en;
+
+
+        document
+            .querySelectorAll("[data-i18n]")
+            .forEach(function (element) {
+
+                const key =
+                    element.dataset.i18n;
+
+                if (
+                    dictionary[key]
+                ) {
+                    element.textContent =
+                        dictionary[key];
+                }
+
+            });
+
+
+        document
+            .querySelectorAll("[data-i18n-placeholder]")
+            .forEach(function (element) {
+
+                const key =
+                    element.dataset.i18nPlaceholder;
+
+                if (
+                    dictionary[key]
+                ) {
+                    element.placeholder =
+                        dictionary[key];
+                }
+
+            });
+
+    }
+
+
+    applyTranslations();
+
+
+    /* =====================================================
+       REPOSITORY
+    ====================================================== */
+
+    const config =
+        window.CHESS_PARTY_CONFIG || {};
+
+
+    const repositoryLink =
+        document.getElementById(
+            "repositoryLink"
+        );
+
+
+    const repositoryLogo =
+        document.getElementById(
+            "repositoryLogo"
+        );
+
+
+    if (
+        repositoryLink &&
+        config.REPOSITORY_URL
+    ) {
+
+        repositoryLink.href =
+            config.REPOSITORY_URL;
+
+    }
+
+
+    if (
+        repositoryLogo &&
+        config.REPOSITORY_LOGO_URL
+    ) {
+
+        repositoryLogo.src =
+            config.REPOSITORY_LOGO_URL;
+
+    }
+
+
+    /* =====================================================
+       IF LOGO IS NOT CONFIGURED
+    ====================================================== */
+
+    if (
+        repositoryLogo &&
+        !config.REPOSITORY_LOGO_URL
+    ) {
+
+        repositoryLogo.style.display =
+            "none";
+
+    }
+
+
+})();
+</script>
+
+
+
+<!-- =========================================================
+     APPLICATION
+========================================================= -->
+
 <script
     type="module"
     src="/js/app.js"
 ></script>
+
 
 </body>
 </html>
