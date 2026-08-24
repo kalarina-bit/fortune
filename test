@@ -1,0 +1,859 @@
+/* =========================================================
+   GITEA CUSTOM GLASS UI
+   Light + Dark
+   ========================================================= */
+
+
+/* =========================================================
+   1. СКРЫТИЕ СИСТЕМНЫХ ЭЛЕМЕНТОВ
+   ========================================================= */
+
+:is(
+    a.item[href*="docs.gitea.com"],
+    a.item[href*="/help"],
+    a.item[href*="/explore/organizations"],
+
+    footer .left,
+    footer .ui.left,
+    footer .footer-left,
+    footer .power-by,
+    footer .ui.left.links,
+    footer .ui.left.menu,
+    footer .ui.container > .left,
+
+    footer a[href*="gitea.com"],
+    footer a[href*="gitea.io"],
+    footer a[href*="gitea.dev"],
+    footer a[href*="github.com/go-gitea"],
+    footer a[href*="/api/"],
+    footer a[href*="/licenses"],
+    footer a[href*="licenses"],
+
+    footer .ui.right > span,
+    footer .ui.right.links > span,
+    footer .ui.right > a[href*="/api/"],
+    footer .ui.right > a[href*="/licenses"],
+    footer .ui.right .version,
+    footer .ui.right .page,
+    footer .ui.right .template,
+    footer .ui.right .power-by,
+
+    .page-content.home .ui.stackable.grid .eight.wide.column,
+    .page-content.home .features,
+    .page-content.home .hero + .ui.stackable.grid
+) {
+    display: none !important;
+}
+
+
+/* =========================================================
+   2. БАЗОВЫЕ ПЕРЕМЕННЫЕ
+   ========================================================= */
+
+:root {
+    --glass-light: rgba(255,255,255,.62);
+    --glass-light-strong: rgba(255,255,255,.82);
+
+    --border-light: rgba(255,255,255,.72);
+
+    --text-light: #30343a;
+    --muted-light: #707780;
+
+    --glass-dark: rgba(25,28,34,.68);
+    --glass-dark-strong: rgba(22,25,30,.90);
+
+    --border-dark: rgba(255,255,255,.075);
+
+    --text-dark: #d9dde2;
+    --muted-dark: #9299a2;
+
+    --button-dark: rgba(255,255,255,.075);
+    --button-dark-hover: rgba(255,255,255,.12);
+
+    --primary-dark: rgba(74,144,226,.88);
+    --primary-dark-hover: rgba(84,155,238,.98);
+
+    --danger-dark: rgba(205,65,65,.88);
+    --danger-dark-hover: rgba(220,75,75,.98);
+
+    --success-dark: rgba(62,145,91,.88);
+    --success-dark-hover: rgba(72,160,102,.98);
+}
+
+
+/* =========================================================
+   3. ОСНОВНОЙ ФОН — LIGHT
+   ========================================================= */
+
+html,
+body {
+    min-height: 100vh !important;
+
+    background:
+        radial-gradient(
+            circle at 20% 10%,
+            rgba(255,255,255,.95),
+            transparent 45%
+        ),
+        radial-gradient(
+            circle at 80% 90%,
+            rgba(220,228,235,.38),
+            transparent 50%
+        ),
+        linear-gradient(
+            160deg,
+            #e8eef2 0%,
+            #f4f7f9 40%,
+            #e9eef2 100%
+        ) !important;
+
+    background-attachment: fixed !important;
+
+    color: var(--text-light) !important;
+}
+
+
+/* =========================================================
+   4. ОСНОВНОЙ ФОН — DARK
+   ========================================================= */
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+),
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) body {
+
+    background:
+        radial-gradient(
+            circle at 15% 10%,
+            rgba(255,255,255,.035),
+            transparent 40%
+        ),
+        radial-gradient(
+            circle at 85% 90%,
+            rgba(255,255,255,.02),
+            transparent 45%
+        ),
+        linear-gradient(
+            145deg,
+            #0f1115 0%,
+            #16191e 50%,
+            #111317 100%
+        ) !important;
+
+    background-attachment: fixed !important;
+
+    color: var(--text-dark) !important;
+}
+
+
+/* =========================================================
+   5. ОБЩИЙ GLASS — LIGHT
+   ========================================================= */
+
+:is(
+    .ui.segment,
+    .ui.segments,
+    .box,
+    .markup,
+    .repository.file.list,
+    .repository .diff-file-box,
+    .repository .ui.attached.segment,
+    .ui.card,
+    .ui.cards > .card
+) {
+
+    background: var(--glass-light) !important;
+
+    backdrop-filter:
+        blur(16px)
+        saturate(140%) !important;
+
+    -webkit-backdrop-filter:
+        blur(16px)
+        saturate(140%) !important;
+
+    border: 1px solid var(--border-light) !important;
+
+    box-shadow:
+        0 4px 20px rgba(0,0,0,.045),
+        inset 0 1px 0 rgba(255,255,255,.65) !important;
+
+    border-radius: 14px !important;
+}
+
+
+/* =========================================================
+   6. ОБЩИЙ GLASS — DARK
+   ========================================================= */
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) :is(
+    .ui.segment,
+    .ui.segments,
+    .box,
+    .markup,
+    .repository.file.list,
+    .repository .diff-file-box,
+    .repository .ui.attached.segment,
+    .ui.card,
+    .ui.cards > .card
+) {
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(28,31,37,.70),
+            rgba(18,20,25,.58)
+        ) !important;
+
+    backdrop-filter:
+        blur(18px)
+        saturate(120%) !important;
+
+    -webkit-backdrop-filter:
+        blur(18px)
+        saturate(120%) !important;
+
+    border: 1px solid var(--border-dark) !important;
+
+    box-shadow:
+        0 10px 36px rgba(0,0,0,.32),
+        inset 0 1px 0 rgba(255,255,255,.025) !important;
+}
+
+
+/* =========================================================
+   7. NAVBAR
+   ВАЖНО: исключаем её из общего glass
+   ========================================================= */
+
+.ui.menu {
+
+    background: rgba(255,255,255,.86) !important;
+
+    border: 1px solid rgba(255,255,255,.72) !important;
+
+    box-shadow:
+        0 3px 14px rgba(0,0,0,.055) !important;
+
+    margin-bottom: 18px !important;
+
+    border-radius: 0 0 12px 12px !important;
+
+    backdrop-filter:
+        blur(18px)
+        saturate(145%) !important;
+
+    -webkit-backdrop-filter:
+        blur(18px)
+        saturate(145%) !important;
+}
+
+
+/* Dark navbar */
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) .ui.menu {
+
+    background: rgba(18,20,25,.88) !important;
+
+    border-color: rgba(255,255,255,.055) !important;
+
+    box-shadow:
+        0 7px 30px rgba(0,0,0,.32) !important;
+}
+
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) .ui.menu .item {
+
+    color: #cbd0d6 !important;
+}
+
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) .ui.menu .item:hover {
+
+    background: rgba(255,255,255,.055) !important;
+}
+
+
+/* =========================================================
+   8. INPUTS — DARK
+   ========================================================= */
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) :is(
+    input,
+    textarea,
+    select
+) {
+
+    background: rgba(8,10,13,.58) !important;
+
+    border:
+        1px solid rgba(255,255,255,.10) !important;
+
+    color: #d8dce1 !important;
+
+    border-radius: 9px !important;
+
+    box-shadow:
+        inset 0 1px 3px rgba(0,0,0,.25) !important;
+}
+
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) :is(
+    input,
+    textarea,
+    select
+):focus {
+
+    border-color:
+        rgba(255,255,255,.22) !important;
+
+    box-shadow:
+        0 0 0 2px rgba(255,255,255,.045),
+        inset 0 1px 3px rgba(0,0,0,.25) !important;
+}
+
+
+/* =========================================================
+   9. КНОПКИ — БАЗОВЫЕ
+   ========================================================= */
+
+.ui.button {
+
+    backdrop-filter: blur(8px) !important;
+
+    -webkit-backdrop-filter: blur(8px) !important;
+
+    border-radius: 9px !important;
+
+    transition:
+        background .18s ease,
+        border-color .18s ease,
+        box-shadow .18s ease,
+        transform .18s ease !important;
+}
+
+
+/* =========================================================
+   10. ОЧЕНЬ ВАЖНО:
+       ОБЫЧНЫЕ КНОПКИ DARK
+   ========================================================= */
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) .ui.button {
+
+    background:
+        rgba(255,255,255,.085) !important;
+
+    border:
+        1px solid rgba(255,255,255,.105) !important;
+
+    color:
+        #d9dde2 !important;
+
+    box-shadow:
+        0 2px 8px rgba(0,0,0,.12) !important;
+}
+
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) .ui.button:hover {
+
+    background:
+        rgba(255,255,255,.13) !important;
+
+    border-color:
+        rgba(255,255,255,.16) !important;
+
+    box-shadow:
+        0 4px 14px rgba(0,0,0,.18) !important;
+
+    transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   11. PRIMARY — ПЛОТНАЯ ВАЖНАЯ КНОПКА
+   ========================================================= */
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) .ui.primary.button,
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) .ui.primary.buttons .button {
+
+    background:
+        var(--primary-dark) !important;
+
+    border:
+        1px solid rgba(255,255,255,.16) !important;
+
+    color:
+        #fff !important;
+
+    box-shadow:
+        0 4px 14px rgba(0,0,0,.25),
+        inset 0 1px 0 rgba(255,255,255,.16) !important;
+
+    font-weight: 600 !important;
+}
+
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) .ui.primary.button:hover,
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) .ui.primary.buttons .button:hover {
+
+    background:
+        var(--primary-dark-hover) !important;
+
+    border-color:
+        rgba(255,255,255,.22) !important;
+
+    box-shadow:
+        0 6px 18px rgba(0,0,0,.32),
+        inset 0 1px 0 rgba(255,255,255,.2) !important;
+}
+
+
+/* =========================================================
+   12. SUCCESS — GREEN
+   ========================================================= */
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) .ui.positive.button,
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) .ui.green.button {
+
+    background:
+        var(--success-dark) !important;
+
+    border:
+        1px solid rgba(255,255,255,.13) !important;
+
+    color:
+        #fff !important;
+
+    font-weight:
+        600 !important;
+
+    box-shadow:
+        0 4px 14px rgba(0,0,0,.25) !important;
+}
+
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) .ui.positive.button:hover,
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) .ui.green.button:hover {
+
+    background:
+        var(--success-dark-hover) !important;
+}
+
+
+/* =========================================================
+   13. DANGER — RED
+   ========================================================= */
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) .ui.negative.button,
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) .ui.red.button {
+
+    background:
+        var(--danger-dark) !important;
+
+    border:
+        1px solid rgba(255,255,255,.13) !important;
+
+    color:
+        #fff !important;
+
+    font-weight:
+        600 !important;
+
+    box-shadow:
+        0 4px 14px rgba(0,0,0,.25) !important;
+}
+
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) .ui.negative.button:hover,
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) .ui.red.button:hover {
+
+    background:
+        var(--danger-dark-hover) !important;
+}
+
+
+/* =========================================================
+   14. CREATE / SUBMIT / IMPORTANT ACTIONS
+   ========================================================= */
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) button[type="submit"],
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) input[type="submit"] {
+
+    background:
+        var(--primary-dark) !important;
+
+    color:
+        #fff !important;
+
+    border:
+        1px solid rgba(255,255,255,.15) !important;
+
+    font-weight:
+        600 !important;
+
+    box-shadow:
+        0 4px 14px rgba(0,0,0,.25) !important;
+}
+
+
+/* =========================================================
+   15. DROPDOWN
+   ========================================================= */
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) .ui.dropdown .menu {
+
+    background:
+        rgba(22,24,29,.96) !important;
+
+    backdrop-filter:
+        blur(18px) !important;
+
+    -webkit-backdrop-filter:
+        blur(18px) !important;
+
+    border:
+        1px solid rgba(255,255,255,.075) !important;
+
+    box-shadow:
+        0 14px 42px rgba(0,0,0,.45) !important;
+
+    border-radius:
+        10px !important;
+}
+
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) .ui.dropdown .menu > .item:hover {
+
+    background:
+        rgba(255,255,255,.07) !important;
+}
+
+
+/* =========================================================
+   16. REPOSITORY FILE LIST
+   ========================================================= */
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) .repository.file.list {
+
+    overflow:
+        hidden !important;
+}
+
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) .repository.file.list .item {
+
+    border-color:
+        rgba(255,255,255,.055) !important;
+}
+
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) .repository.file.list .item:hover {
+
+    background:
+        rgba(255,255,255,.045) !important;
+}
+
+
+/* =========================================================
+   17. ССЫЛКИ
+   ========================================================= */
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) a {
+
+    transition:
+        color .15s ease,
+        opacity .15s ease !important;
+}
+
+
+/* =========================================================
+   18. FOOTER
+   ========================================================= */
+
+footer {
+
+    min-height:
+        32px !important;
+
+    padding:
+        6px 18px !important;
+
+    color:
+        rgba(0,0,0,.35) !important;
+
+    background:
+        rgba(255,255,255,.45) !important;
+
+    border:
+        1px solid rgba(255,255,255,.5) !important;
+
+    border-radius:
+        12px 12px 0 0 !important;
+
+    backdrop-filter:
+        blur(12px) !important;
+
+    -webkit-backdrop-filter:
+        blur(12px) !important;
+}
+
+
+footer .ui.container {
+
+    min-height:
+        0 !important;
+}
+
+
+footer .ui.right {
+
+    margin-left:
+        0 !important;
+}
+
+
+/* Dark footer */
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) footer {
+
+    color:
+        rgba(255,255,255,.35) !important;
+
+    background:
+        rgba(18,20,25,.52) !important;
+
+    border-color:
+        rgba(255,255,255,.05) !important;
+}
+
+
+/* =========================================================
+   19. SCROLLBAR
+   ========================================================= */
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) ::-webkit-scrollbar {
+
+    width:
+        8px;
+
+    height:
+        8px;
+}
+
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) ::-webkit-scrollbar-track {
+
+    background:
+        transparent;
+}
+
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) ::-webkit-scrollbar-thumb {
+
+    background:
+        rgba(255,255,255,.12);
+
+    border-radius:
+        10px;
+}
+
+
+:is(
+    html.theme-gitea-dark,
+    html.theme-arc-green,
+    html.theme-gitea-auto.theme-gitea-dark
+) ::-webkit-scrollbar-thumb:hover {
+
+    background:
+        rgba(255,255,255,.20);
+}
+
+
+/* =========================================================
+   20. MOBILE
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+    .ui.menu {
+
+        border-radius:
+            0 0 10px 10px !important;
+
+        margin-bottom:
+            12px !important;
+    }
+
+    :is(
+        .ui.segment,
+        .box,
+        .repository.file.list
+    ) {
+
+        border-radius:
+            11px !important;
+    }
+
+    footer {
+
+        padding:
+            5px 12px !important;
+
+        border-radius:
+            10px 10px 0 0 !important;
+    }
+
+    /* На мобильных важные кнопки ещё плотнее */
+
+    :is(
+        html.theme-gitea-dark,
+        html.theme-arc-green,
+        html.theme-gitea-auto.theme-gitea-dark
+    ) .ui.primary.button,
+    :is(
+        html.theme-gitea-dark,
+        html.theme-arc-green,
+        html.theme-gitea-auto.theme-gitea-dark
+    ) button[type="submit"] {
+
+        background:
+            rgba(74,144,226,.94) !important;
+
+        box-shadow:
+            0 4px 14px rgba(0,0,0,.30) !important;
+    }
+}
