@@ -1,6 +1,6 @@
 /* =========================================================
-   GITEA CUSTOM GLASS UI
-   Light + Dark
+   GITEA CUSTOM GLASS UI — ENHANCED
+   Light + Dark Mode | Performance Optimized
    ========================================================= */
 
 
@@ -12,7 +12,6 @@
     a.item[href*="docs.gitea.com"],
     a.item[href*="/help"],
     a.item[href*="/explore/organizations"],
-
     footer .left,
     footer .ui.left,
     footer .footer-left,
@@ -20,7 +19,6 @@
     footer .ui.left.links,
     footer .ui.left.menu,
     footer .ui.container > .left,
-
     footer a[href*="gitea.com"],
     footer a[href*="gitea.io"],
     footer a[href*="gitea.dev"],
@@ -28,7 +26,6 @@
     footer a[href*="/api/"],
     footer a[href*="/licenses"],
     footer a[href*="licenses"],
-
     footer .ui.right > span,
     footer .ui.right.links > span,
     footer .ui.right > a[href*="/api/"],
@@ -37,7 +34,6 @@
     footer .ui.right .page,
     footer .ui.right .template,
     footer .ui.right .power-by,
-
     .page-content.home .ui.stackable.grid .eight.wide.column,
     .page-content.home .features,
     .page-content.home .hero + .ui.stackable.grid
@@ -47,57 +43,97 @@
 
 
 /* =========================================================
-   2. БАЗОВЫЕ ПЕРЕМЕННЫЕ
+   2. ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ И ИНИЦИАЛИЗАЦИЯ
    ========================================================= */
 
 :root {
-    --glass-light: rgba(255,255,255,.62);
-    --glass-light-strong: rgba(255,255,255,.82);
-
-    --border-light: rgba(255,255,255,.72);
-
+    /* Light Mode Glass */
+    --glass-light: rgba(255, 255, 255, 0.62);
+    --glass-light-strong: rgba(255, 255, 255, 0.82);
+    --border-light: rgba(255, 255, 255, 0.72);
     --text-light: #30343a;
     --muted-light: #707780;
 
-    --glass-dark: rgba(25,28,34,.68);
-    --glass-dark-strong: rgba(22,25,30,.90);
-
-    --border-dark: rgba(255,255,255,.075);
-
+    /* Dark Mode Glass */
+    --glass-dark: rgba(25, 28, 34, 0.68);
+    --glass-dark-strong: rgba(22, 25, 30, 0.90);
+    --border-dark: rgba(255, 255, 255, 0.075);
     --text-dark: #d9dde2;
     --muted-dark: #9299a2;
 
-    --button-dark: rgba(255,255,255,.075);
-    --button-dark-hover: rgba(255,255,255,.12);
+    /* Dark Mode Buttons */
+    --button-dark: rgba(255, 255, 255, 0.075);
+    --button-dark-hover: rgba(255, 255, 255, 0.12);
 
-    --primary-dark: rgba(74,144,226,.88);
-    --primary-dark-hover: rgba(84,155,238,.98);
+    /* Color Palette Dark */
+    --primary-dark: rgba(74, 144, 226, 0.88);
+    --primary-dark-hover: rgba(84, 155, 238, 0.98);
+    --primary-focus: rgba(94, 170, 255, 1);
 
-    --danger-dark: rgba(205,65,65,.88);
-    --danger-dark-hover: rgba(220,75,75,.98);
+    --success-dark: rgba(62, 145, 91, 0.88);
+    --success-dark-hover: rgba(72, 160, 102, 0.98);
 
-    --success-dark: rgba(62,145,91,.88);
-    --success-dark-hover: rgba(72,160,102,.98);
+    --danger-dark: rgba(205, 65, 65, 0.88);
+    --danger-dark-hover: rgba(220, 75, 75, 0.98);
+
+    --warning-dark: rgba(184, 112, 47, 0.88);
+    --warning-dark-hover: rgba(198, 125, 55, 0.98);
+
+    /* Shadows */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --shadow-md: 0 4px 14px rgba(0, 0, 0, 0.12);
+    --shadow-lg: 0 10px 36px rgba(0, 0, 0, 0.18);
+    --shadow-xl: 0 14px 42px rgba(0, 0, 0, 0.25);
+
+    /* Transitions */
+    --transition-fast: 0.15s ease;
+    --transition-base: 0.18s ease;
+    --transition-slow: 0.25s ease;
 }
 
 
 /* =========================================================
-   3. ОСНОВНОЙ ФОН — LIGHT
+   3. RESET И БАЗОВЫЕ СТИЛИ
    ========================================================= */
 
-html,
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
 body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+
+/* =========================================================
+   4. ФОНЫ — LIGHT THEME
+   ========================================================= */
+
+html:not(.theme-gitea-dark):not(.theme-arc-green),
+html.theme-gitea-auto:not(.theme-gitea-dark),
+body:not(:is(html.theme-gitea-dark, html.theme-arc-green)) {
+
     min-height: 100vh !important;
 
     background:
         radial-gradient(
-            circle at 20% 10%,
-            rgba(255,255,255,.95),
+            ellipse 80% 50% at 20% 10%,
+            rgba(255, 255, 255, 0.95),
             transparent 45%
         ),
         radial-gradient(
-            circle at 80% 90%,
-            rgba(220,228,235,.38),
+            ellipse 70% 60% at 80% 90%,
+            rgba(220, 228, 235, 0.38),
             transparent 50%
         ),
         linear-gradient(
@@ -108,52 +144,58 @@ body {
         ) !important;
 
     background-attachment: fixed !important;
+    background-size: cover !important;
 
     color: var(--text-light) !important;
 }
 
 
 /* =========================================================
-   4. ОСНОВНОЙ ФОН — DARK
+   5. ФОНЫ — DARK THEME (УЛУЧШЕННАЯ)
    ========================================================= */
 
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-),
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) body {
+:is(html.theme-gitea-dark, html.theme-arc-green) {
+
+    min-height: 100vh !important;
 
     background:
         radial-gradient(
-            circle at 15% 10%,
-            rgba(255,255,255,.035),
-            transparent 40%
+            ellipse 100% 80% at 15% 10%,
+            rgba(45, 78, 125, 0.12),
+            transparent 50%
         ),
         radial-gradient(
-            circle at 85% 90%,
-            rgba(255,255,255,.02),
-            transparent 45%
+            ellipse 90% 70% at 85% 90%,
+            rgba(60, 100, 150, 0.08),
+            transparent 55%
+        ),
+        radial-gradient(
+            ellipse 60% 50% at 50% 50%,
+            rgba(255, 255, 255, 0.008),
+            transparent 60%
         ),
         linear-gradient(
             145deg,
-            #0f1115 0%,
+            #0d0f12 0%,
+            #121518 25%,
             #16191e 50%,
-            #111317 100%
+            #13151a 75%,
+            #0f1115 100%
         ) !important;
 
     background-attachment: fixed !important;
+    background-size: cover !important;
 
     color: var(--text-dark) !important;
 }
 
+:is(html.theme-gitea-dark, html.theme-arc-green) body {
+    background: transparent !important;
+}
+
 
 /* =========================================================
-   5. ОБЩИЙ GLASS — LIGHT
+   6. GLASS EFFECT — LIGHT (CONTAINERS)
    ========================================================= */
 
 :is(
@@ -165,38 +207,32 @@ body {
     .repository .diff-file-box,
     .repository .ui.attached.segment,
     .ui.card,
-    .ui.cards > .card
-) {
+    .ui.cards > .card,
+    .file-content,
+    .diff-stats
+):not(html.theme-gitea-dark *):not(html.theme-arc-green *) {
 
     background: var(--glass-light) !important;
 
-    backdrop-filter:
-        blur(16px)
-        saturate(140%) !important;
-
-    -webkit-backdrop-filter:
-        blur(16px)
-        saturate(140%) !important;
+    backdrop-filter: blur(16px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
 
     border: 1px solid var(--border-light) !important;
 
     box-shadow:
-        0 4px 20px rgba(0,0,0,.045),
-        inset 0 1px 0 rgba(255,255,255,.65) !important;
+        0 4px 20px rgba(0, 0, 0, 0.045),
+        inset 0 1px 0 rgba(255, 255, 255, 0.65) !important;
 
     border-radius: 14px !important;
+    overflow: hidden;
 }
 
 
 /* =========================================================
-   6. ОБЩИЙ GLASS — DARK
+   7. GLASS EFFECT — DARK (CONTAINERS)
    ========================================================= */
 
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) :is(
+:is(html.theme-gitea-dark, html.theme-arc-green) :is(
     .ui.segment,
     .ui.segments,
     .box,
@@ -205,617 +241,928 @@ body {
     .repository .diff-file-box,
     .repository .ui.attached.segment,
     .ui.card,
-    .ui.cards > .card
+    .ui.cards > .card,
+    .file-content,
+    .diff-stats
 ) {
 
     background:
         linear-gradient(
-            145deg,
-            rgba(28,31,37,.70),
-            rgba(18,20,25,.58)
+            135deg,
+            rgba(28, 31, 37, 0.55),
+            rgba(18, 20, 25, 0.48)
         ) !important;
 
-    backdrop-filter:
-        blur(18px)
-        saturate(120%) !important;
+    backdrop-filter: blur(18px) saturate(120%) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(120%) !important;
 
-    -webkit-backdrop-filter:
-        blur(18px)
-        saturate(120%) !important;
-
-    border: 1px solid var(--border-dark) !important;
+    border: 1px solid rgba(255, 255, 255, 0.055) !important;
 
     box-shadow:
-        0 10px 36px rgba(0,0,0,.32),
-        inset 0 1px 0 rgba(255,255,255,.025) !important;
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.035),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.2) !important;
+
+    border-radius: 14px !important;
+    overflow: hidden;
 }
 
 
 /* =========================================================
-   7. NAVBAR
-   ВАЖНО: исключаем её из общего glass
+   8. NAVBAR/MENU — LIGHT
    ========================================================= */
 
-.ui.menu {
+.ui.menu:not(html.theme-gitea-dark *):not(html.theme-arc-green *) {
 
-    background: rgba(255,255,255,.86) !important;
+    background: rgba(255, 255, 255, 0.86) !important;
 
-    border: 1px solid rgba(255,255,255,.72) !important;
+    border: 1px solid rgba(255, 255, 255, 0.72) !important;
+    border-bottom: 2px solid rgba(220, 228, 235, 0.5) !important;
 
-    box-shadow:
-        0 3px 14px rgba(0,0,0,.055) !important;
+    box-shadow: 0 3px 14px rgba(0, 0, 0, 0.055) !important;
 
     margin-bottom: 18px !important;
-
     border-radius: 0 0 12px 12px !important;
 
-    backdrop-filter:
-        blur(18px)
-        saturate(145%) !important;
-
-    -webkit-backdrop-filter:
-        blur(18px)
-        saturate(145%) !important;
-}
-
-
-/* Dark navbar */
-
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) .ui.menu {
-
-    background: rgba(18,20,25,.88) !important;
-
-    border-color: rgba(255,255,255,.055) !important;
-
-    box-shadow:
-        0 7px 30px rgba(0,0,0,.32) !important;
-}
-
-
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) .ui.menu .item {
-
-    color: #cbd0d6 !important;
-}
-
-
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) .ui.menu .item:hover {
-
-    background: rgba(255,255,255,.055) !important;
+    backdrop-filter: blur(18px) saturate(145%) !important;
+    -webkit-backdrop-filter: blur(18px) saturate(145%) !important;
 }
 
 
 /* =========================================================
-   8. INPUTS — DARK
+   9. NAVBAR/MENU — DARK (УЛУЧШЕННАЯ)
    ========================================================= */
 
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) :is(
+:is(html.theme-gitea-dark, html.theme-arc-green) .ui.menu {
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(22, 25, 30, 0.92),
+            rgba(18, 20, 25, 0.88)
+        ) !important;
+
+    border:
+        1px solid rgba(255, 255, 255, 0.06) !important;
+
+    border-bottom:
+        2px solid rgba(74, 144, 226, 0.15) !important;
+
+    box-shadow:
+        0 6px 28px rgba(0, 0, 0, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+
+    margin-bottom: 18px !important;
+    border-radius: 0 0 14px 14px !important;
+
+    backdrop-filter: blur(20px) saturate(150%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(150%) !important;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) .ui.menu .item {
+
+    color: #cbd0d6 !important;
+
+    transition: var(--transition-fast) !important;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) .ui.menu .item:hover {
+
+    background: rgba(74, 144, 226, 0.1) !important;
+    color: #e0e4e8 !important;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) .ui.menu .active.item {
+
+    background: rgba(74, 144, 226, 0.15) !important;
+    border-bottom-color: var(--primary-dark) !important;
+}
+
+
+/* =========================================================
+   10. INPUT & TEXTAREA — LIGHT
+   ========================================================= */
+
+input:not(html.theme-gitea-dark *):not(html.theme-arc-green *),
+textarea:not(html.theme-gitea-dark *):not(html.theme-arc-green *),
+select:not(html.theme-gitea-dark *):not(html.theme-arc-green *) {
+
+    background: rgba(255, 255, 255, 0.75) !important;
+
+    border: 1px solid rgba(200, 210, 220, 0.6) !important;
+
+    color: #30343a !important;
+
+    border-radius: 9px !important;
+
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+
+    transition: var(--transition-fast) !important;
+}
+
+
+input:focus:not(html.theme-gitea-dark *):not(html.theme-arc-green *),
+textarea:focus:not(html.theme-gitea-dark *):not(html.theme-arc-green *),
+select:focus:not(html.theme-gitea-dark *):not(html.theme-arc-green *) {
+
+    background: rgba(255, 255, 255, 0.92) !important;
+
+    border-color: rgba(74, 144, 226, 0.6) !important;
+
+    box-shadow:
+        0 0 0 2px rgba(74, 144, 226, 0.1),
+        inset 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+}
+
+
+/* =========================================================
+   11. INPUT & TEXTAREA — DARK (УЛУЧШЕННАЯ)
+   ========================================================= */
+
+:is(html.theme-gitea-dark, html.theme-arc-green) :is(
     input,
     textarea,
     select
 ) {
 
-    background: rgba(8,10,13,.58) !important;
+    background:
+        linear-gradient(
+            135deg,
+            rgba(8, 10, 13, 0.65),
+            rgba(6, 8, 11, 0.6)
+        ) !important;
 
-    border:
-        1px solid rgba(255,255,255,.10) !important;
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
 
     color: #d8dce1 !important;
 
     border-radius: 9px !important;
 
-    box-shadow:
-        inset 0 1px 3px rgba(0,0,0,.25) !important;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+
+    transition: var(--transition-fast) !important;
 }
 
 
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) :is(
+:is(html.theme-gitea-dark, html.theme-arc-green) :is(
     input,
     textarea,
     select
 ):focus {
 
-    border-color:
-        rgba(255,255,255,.22) !important;
+    background:
+        linear-gradient(
+            135deg,
+            rgba(12, 15, 20, 0.8),
+            rgba(10, 12, 16, 0.75)
+        ) !important;
+
+    border-color: rgba(74, 144, 226, 0.4) !important;
 
     box-shadow:
-        0 0 0 2px rgba(255,255,255,.045),
-        inset 0 1px 3px rgba(0,0,0,.25) !important;
+        0 0 0 2px rgba(74, 144, 226, 0.15),
+        inset 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) :is(
+    input,
+    textarea,
+    select
+)::placeholder {
+
+    color: rgba(210, 215, 220, 0.4) !important;
 }
 
 
 /* =========================================================
-   9. КНОПКИ — БАЗОВЫЕ
+   12. BUTTONS — БАЗОВЫЕ СТИЛИ
    ========================================================= */
 
-.ui.button {
+.ui.button,
+button,
+input[type="button"] {
 
     backdrop-filter: blur(8px) !important;
-
     -webkit-backdrop-filter: blur(8px) !important;
 
     border-radius: 9px !important;
 
     transition:
-        background .18s ease,
-        border-color .18s ease,
-        box-shadow .18s ease,
-        transform .18s ease !important;
+        background var(--transition-base),
+        border-color var(--transition-base),
+        box-shadow var(--transition-base),
+        transform var(--transition-base),
+        color var(--transition-base) !important;
+
+    font-weight: 500 !important;
+
+    cursor: pointer;
+
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 
 /* =========================================================
-   10. ОЧЕНЬ ВАЖНО:
-       ОБЫЧНЫЕ КНОПКИ DARK
+   13. BUTTONS — LIGHT MODE
    ========================================================= */
 
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) .ui.button {
+.ui.button:not(html.theme-gitea-dark *):not(html.theme-arc-green *) {
 
-    background:
-        rgba(255,255,255,.085) !important;
+    background: rgba(255, 255, 255, 0.75) !important;
 
-    border:
-        1px solid rgba(255,255,255,.105) !important;
+    border: 1px solid rgba(220, 228, 235, 0.6) !important;
 
-    color:
-        #d9dde2 !important;
+    color: #30343a !important;
 
     box-shadow:
-        0 2px 8px rgba(0,0,0,.12) !important;
+        0 2px 8px rgba(0, 0, 0, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
 }
 
 
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) .ui.button:hover {
+.ui.button:hover:not(html.theme-gitea-dark *):not(html.theme-arc-green *) {
 
-    background:
-        rgba(255,255,255,.13) !important;
+    background: rgba(255, 255, 255, 0.9) !important;
 
-    border-color:
-        rgba(255,255,255,.16) !important;
+    border-color: rgba(200, 210, 220, 0.8) !important;
 
     box-shadow:
-        0 4px 14px rgba(0,0,0,.18) !important;
+        0 4px 14px rgba(0, 0, 0, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
 
     transform: translateY(-1px);
 }
 
 
 /* =========================================================
-   11. PRIMARY — ПЛОТНАЯ ВАЖНАЯ КНОПКА
+   14. BUTTONS — DARK MODE (СТАНДАРТНЫЕ)
    ========================================================= */
 
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) .ui.primary.button,
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) .ui.primary.buttons .button {
+:is(html.theme-gitea-dark, html.theme-arc-green) .ui.button {
 
     background:
-        var(--primary-dark) !important;
+        linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.095),
+            rgba(255, 255, 255, 0.065)
+        ) !important;
 
-    border:
-        1px solid rgba(255,255,255,.16) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
 
-    color:
-        #fff !important;
+    color: #d9dde2 !important;
 
     box-shadow:
-        0 4px 14px rgba(0,0,0,.25),
-        inset 0 1px 0 rgba(255,255,255,.16) !important;
+        0 2px 8px rgba(0, 0, 0, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) .ui.button:hover {
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.15),
+            rgba(255, 255, 255, 0.11)
+        ) !important;
+
+    border-color: rgba(255, 255, 255, 0.18) !important;
+
+    color: #e8ecf0 !important;
+
+    box-shadow:
+        0 4px 14px rgba(0, 0, 0, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+
+    transform: translateY(-1px);
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) .ui.button:active {
+
+    transform: translateY(0) !important;
+
+    box-shadow:
+        0 1px 4px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+
+/* =========================================================
+   15. PRIMARY BUTTON — DARK
+   ========================================================= */
+
+:is(html.theme-gitea-dark, html.theme-arc-green) :is(
+    .ui.primary.button,
+    .ui.primary.buttons .button
+) {
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--primary-dark),
+            rgba(64, 132, 210, 0.85)
+        ) !important;
+
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+
+    color: #ffffff !important;
+
+    box-shadow:
+        0 4px 14px rgba(74, 144, 226, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
 
     font-weight: 600 !important;
 }
 
 
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) .ui.primary.button:hover,
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) .ui.primary.buttons .button:hover {
+:is(html.theme-gitea-dark, html.theme-arc-green) :is(
+    .ui.primary.button,
+    .ui.primary.buttons .button
+):hover {
 
     background:
-        var(--primary-dark-hover) !important;
+        linear-gradient(
+            135deg,
+            var(--primary-dark-hover),
+            rgba(74, 150, 230, 0.95)
+        ) !important;
 
-    border-color:
-        rgba(255,255,255,.22) !important;
+    border-color: rgba(255, 255, 255, 0.22) !important;
 
     box-shadow:
-        0 6px 18px rgba(0,0,0,.32),
-        inset 0 1px 0 rgba(255,255,255,.2) !important;
+        0 6px 18px rgba(74, 144, 226, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+
+    transform: translateY(-2px);
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) :is(
+    .ui.primary.button,
+    .ui.primary.buttons .button
+):active {
+
+    transform: translateY(0) !important;
 }
 
 
 /* =========================================================
-   12. SUCCESS — GREEN
+   16. SUCCESS BUTTON — DARK (ЗЕЛЁНАЯ)
    ========================================================= */
 
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) .ui.positive.button,
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) .ui.green.button {
+:is(html.theme-gitea-dark, html.theme-arc-green) :is(
+    .ui.positive.button,
+    .ui.green.button
+) {
 
     background:
-        var(--success-dark) !important;
+        linear-gradient(
+            135deg,
+            var(--success-dark),
+            rgba(55, 135, 85, 0.85)
+        ) !important;
 
-    border:
-        1px solid rgba(255,255,255,.13) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
 
-    color:
-        #fff !important;
+    color: #ffffff !important;
 
-    font-weight:
-        600 !important;
+    font-weight: 600 !important;
 
     box-shadow:
-        0 4px 14px rgba(0,0,0,.25) !important;
+        0 4px 14px rgba(62, 145, 91, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
 }
 
 
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) .ui.positive.button:hover,
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) .ui.green.button:hover {
+:is(html.theme-gitea-dark, html.theme-arc-green) :is(
+    .ui.positive.button,
+    .ui.green.button
+):hover {
 
     background:
-        var(--success-dark-hover) !important;
-}
-
-
-/* =========================================================
-   13. DANGER — RED
-   ========================================================= */
-
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) .ui.negative.button,
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) .ui.red.button {
-
-    background:
-        var(--danger-dark) !important;
-
-    border:
-        1px solid rgba(255,255,255,.13) !important;
-
-    color:
-        #fff !important;
-
-    font-weight:
-        600 !important;
+        linear-gradient(
+            135deg,
+            var(--success-dark-hover),
+            rgba(70, 155, 100, 0.95)
+        ) !important;
 
     box-shadow:
-        0 4px 14px rgba(0,0,0,.25) !important;
-}
+        0 6px 18px rgba(62, 145, 91, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
 
-
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) .ui.negative.button:hover,
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) .ui.red.button:hover {
-
-    background:
-        var(--danger-dark-hover) !important;
+    transform: translateY(-2px);
 }
 
 
 /* =========================================================
-   14. CREATE / SUBMIT / IMPORTANT ACTIONS
+   17. DANGER BUTTON — DARK (КРАСНАЯ)
    ========================================================= */
 
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) button[type="submit"],
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) input[type="submit"] {
+:is(html.theme-gitea-dark, html.theme-arc-green) :is(
+    .ui.negative.button,
+    .ui.red.button
+) {
 
     background:
-        var(--primary-dark) !important;
+        linear-gradient(
+            135deg,
+            var(--danger-dark),
+            rgba(185, 55, 55, 0.85)
+        ) !important;
 
-    color:
-        #fff !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
 
-    border:
-        1px solid rgba(255,255,255,.15) !important;
+    color: #ffffff !important;
 
-    font-weight:
-        600 !important;
+    font-weight: 600 !important;
 
     box-shadow:
-        0 4px 14px rgba(0,0,0,.25) !important;
+        0 4px 14px rgba(205, 65, 65, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
 }
 
 
-/* =========================================================
-   15. DROPDOWN
-   ========================================================= */
-
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) .ui.dropdown .menu {
+:is(html.theme-gitea-dark, html.theme-arc-green) :is(
+    .ui.negative.button,
+    .ui.red.button
+):hover {
 
     background:
-        rgba(22,24,29,.96) !important;
-
-    backdrop-filter:
-        blur(18px) !important;
-
-    -webkit-backdrop-filter:
-        blur(18px) !important;
-
-    border:
-        1px solid rgba(255,255,255,.075) !important;
+        linear-gradient(
+            135deg,
+            var(--danger-dark-hover),
+            rgba(210, 75, 75, 0.95)
+        ) !important;
 
     box-shadow:
-        0 14px 42px rgba(0,0,0,.45) !important;
+        0 6px 18px rgba(205, 65, 65, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
 
-    border-radius:
-        10px !important;
-}
-
-
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) .ui.dropdown .menu > .item:hover {
-
-    background:
-        rgba(255,255,255,.07) !important;
+    transform: translateY(-2px);
 }
 
 
 /* =========================================================
-   16. REPOSITORY FILE LIST
+   18. WARNING BUTTON — DARK (ЖЁЛТАЯ)
    ========================================================= */
 
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) .repository.file.list {
-
-    overflow:
-        hidden !important;
-}
-
-
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) .repository.file.list .item {
-
-    border-color:
-        rgba(255,255,255,.055) !important;
-}
-
-
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) .repository.file.list .item:hover {
+:is(html.theme-gitea-dark, html.theme-arc-green) :is(
+    .ui.warning.button,
+    .ui.yellow.button
+) {
 
     background:
-        rgba(255,255,255,.045) !important;
+        linear-gradient(
+            135deg,
+            var(--warning-dark),
+            rgba(165, 100, 35, 0.85)
+        ) !important;
+
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
+
+    color: #ffffff !important;
+
+    font-weight: 600 !important;
+
+    box-shadow:
+        0 4px 14px rgba(184, 112, 47, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.18) !important;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) :is(
+    .ui.warning.button,
+    .ui.yellow.button
+):hover {
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--warning-dark-hover),
+            rgba(198, 125, 55, 0.95)
+        ) !important;
+
+    transform: translateY(-2px);
 }
 
 
 /* =========================================================
-   17. ССЫЛКИ
+   19. SUBMIT & CREATE BUTTONS
    ========================================================= */
 
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) a {
+:is(html.theme-gitea-dark, html.theme-arc-green) :is(
+    button[type="submit"],
+    input[type="submit"]
+) {
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--primary-dark),
+            rgba(64, 132, 210, 0.85)
+        ) !important;
+
+    color: #ffffff !important;
+
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+
+    font-weight: 600 !important;
+
+    box-shadow:
+        0 4px 14px rgba(74, 144, 226, 0.32),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+
+    padding: 10px 20px !important;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) :is(
+    button[type="submit"],
+    input[type="submit"]
+):hover {
+
+    background:
+        linear-gradient(
+            135deg,
+            var(--primary-dark-hover),
+            rgba(74, 150, 230, 0.95)
+        ) !important;
+
+    box-shadow:
+        0 6px 18px rgba(74, 144, 226, 0.42),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25) !important;
+
+    transform: translateY(-2px);
+}
+
+
+/* =========================================================
+   20. DROPDOWN MENU
+   ========================================================= */
+
+:is(html.theme-gitea-dark, html.theme-arc-green) .ui.dropdown .menu {
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(20, 22, 27, 0.98),
+            rgba(16, 18, 23, 0.96)
+        ) !important;
+
+    backdrop-filter: blur(20px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(20px) saturate(140%) !important;
+
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+
+    box-shadow:
+        0 14px 42px rgba(0, 0, 0, 0.48),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+
+    border-radius: 11px !important;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) .ui.dropdown .menu > .item {
+
+    color: #cbd0d6 !important;
+
+    transition: var(--transition-fast) !important;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) .ui.dropdown .menu > .item:hover {
+
+    background: rgba(74, 144, 226, 0.12) !important;
+    color: #e0e4e8 !important;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) .ui.dropdown .menu > .selected.item {
+
+    background: rgba(74, 144, 226, 0.18) !important;
+    color: #e0e4e8 !important;
+}
+
+
+/* =========================================================
+   21. REPOSITORY FILE LIST
+   ========================================================= */
+
+:is(html.theme-gitea-dark, html.theme-arc-green) .repository.file.list {
+
+    overflow: hidden !important;
+    border-radius: 14px !important;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) .repository.file.list .item {
+
+    border-color: rgba(255, 255, 255, 0.04) !important;
+
+    transition: var(--transition-fast) !important;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) .repository.file.list .item:hover {
+
+    background: rgba(74, 144, 226, 0.08) !important;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) .repository.file.list .item.selected {
+
+    background: rgba(74, 144, 226, 0.15) !important;
+}
+
+
+/* =========================================================
+   22. LINKS
+   ========================================================= */
+
+a {
 
     transition:
-        color .15s ease,
-        opacity .15s ease !important;
+        color var(--transition-fast),
+        opacity var(--transition-fast),
+        text-decoration var(--transition-fast) !important;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) a {
+
+    color: #5fa3ff !important;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) a:hover {
+
+    color: #7fb3ff !important;
+
+    opacity: 0.9 !important;
 }
 
 
 /* =========================================================
-   18. FOOTER
+   23. CODE & PRE
+   ========================================================= */
+
+:is(html.theme-gitea-dark, html.theme-arc-green) :is(
+    code,
+    pre,
+    .hljs
+) {
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(6, 8, 11, 0.8),
+            rgba(4, 6, 9, 0.75)
+        ) !important;
+
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+
+    color: #d8dce1 !important;
+
+    border-radius: 8px !important;
+}
+
+
+/* =========================================================
+   24. FOOTER
    ========================================================= */
 
 footer {
 
-    min-height:
-        32px !important;
+    min-height: 32px !important;
 
-    padding:
-        6px 18px !important;
+    padding: 8px 20px !important;
 
-    color:
-        rgba(0,0,0,.35) !important;
+    color: rgba(0, 0, 0, 0.35) !important;
 
-    background:
-        rgba(255,255,255,.45) !important;
+    background: rgba(255, 255, 255, 0.48) !important;
 
-    border:
-        1px solid rgba(255,255,255,.5) !important;
+    border: 1px solid rgba(255, 255, 255, 0.52) !important;
 
-    border-radius:
-        12px 12px 0 0 !important;
+    border-radius: 12px 12px 0 0 !important;
 
-    backdrop-filter:
-        blur(12px) !important;
+    backdrop-filter: blur(12px) saturate(130%) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(130%) !important;
 
-    -webkit-backdrop-filter:
-        blur(12px) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7) !important;
 }
 
 
 footer .ui.container {
 
-    min-height:
-        0 !important;
+    min-height: 0 !important;
 }
 
 
 footer .ui.right {
 
-    margin-left:
-        0 !important;
-}
-
-
-/* Dark footer */
-
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) footer {
-
-    color:
-        rgba(255,255,255,.35) !important;
-
-    background:
-        rgba(18,20,25,.52) !important;
-
-    border-color:
-        rgba(255,255,255,.05) !important;
+    margin-left: 0 !important;
 }
 
 
 /* =========================================================
-   19. SCROLLBAR
+   25. FOOTER — DARK MODE
    ========================================================= */
 
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) ::-webkit-scrollbar {
+:is(html.theme-gitea-dark, html.theme-arc-green) footer {
 
-    width:
-        8px;
-
-    height:
-        8px;
-}
-
-
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) ::-webkit-scrollbar-track {
+    color: rgba(255, 255, 255, 0.38) !important;
 
     background:
-        transparent;
-}
+        linear-gradient(
+            180deg,
+            rgba(18, 20, 25, 0.58),
+            rgba(16, 18, 23, 0.54)
+        ) !important;
 
+    border-color: rgba(255, 255, 255, 0.055) !important;
 
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) ::-webkit-scrollbar-thumb {
-
-    background:
-        rgba(255,255,255,.12);
-
-    border-radius:
-        10px;
-}
-
-
-:is(
-    html.theme-gitea-dark,
-    html.theme-arc-green,
-    html.theme-gitea-auto.theme-gitea-dark
-) ::-webkit-scrollbar-thumb:hover {
-
-    background:
-        rgba(255,255,255,.20);
+    box-shadow:
+        0 -4px 16px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
 }
 
 
 /* =========================================================
-   20. MOBILE
+   26. SCROLLBAR — DARK
+   ========================================================= */
+
+:is(html.theme-gitea-dark, html.theme-arc-green) ::-webkit-scrollbar {
+
+    width: 9px;
+    height: 9px;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) ::-webkit-scrollbar-track {
+
+    background: transparent;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) ::-webkit-scrollbar-thumb {
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.15),
+            rgba(255, 255, 255, 0.08)
+        );
+
+    border-radius: 10px;
+
+    border: 2px solid transparent;
+
+    background-clip: padding-box;
+
+    transition: background var(--transition-fast) !important;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) ::-webkit-scrollbar-thumb:hover {
+
+    background:
+        linear-gradient(
+            180deg,
+            rgba(255, 255, 255, 0.25),
+            rgba(255, 255, 255, 0.15)
+        );
+
+    background-clip: padding-box;
+}
+
+
+/* =========================================================
+   27. BADGES & LABELS
+   ========================================================= */
+
+:is(html.theme-gitea-dark, html.theme-arc-green) .ui.label,
+:is(html.theme-gitea-dark, html.theme-arc-green) .ui.badge {
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.12),
+            rgba(255, 255, 255, 0.08)
+        ) !important;
+
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+
+    color: #d9dde2 !important;
+
+    border-radius: 8px !important;
+
+    backdrop-filter: blur(10px) !important;
+}
+
+
+/* =========================================================
+   28. ALERT & NOTIFICATION
+   ========================================================= */
+
+:is(html.theme-gitea-dark, html.theme-arc-green) :is(
+    .ui.info.message,
+    .ui.success.message,
+    .ui.warning.message,
+    .ui.error.message
+) {
+
+    backdrop-filter: blur(12px) !important;
+
+    border-radius: 11px !important;
+
+    border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) .ui.success.message {
+
+    background: rgba(62, 145, 91, 0.15) !important;
+
+    border-color: rgba(62, 145, 91, 0.3) !important;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) .ui.error.message {
+
+    background: rgba(205, 65, 65, 0.15) !important;
+
+    border-color: rgba(205, 65, 65, 0.3) !important;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) .ui.warning.message {
+
+    background: rgba(184, 112, 47, 0.15) !important;
+
+    border-color: rgba(184, 112, 47, 0.3) !important;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) .ui.info.message {
+
+    background: rgba(74, 144, 226, 0.15) !important;
+
+    border-color: rgba(74, 144, 226, 0.3) !important;
+}
+
+
+/* =========================================================
+   29. TABLE
+   ========================================================= */
+
+:is(html.theme-gitea-dark, html.theme-arc-green) .ui.table {
+
+    background:
+        linear-gradient(
+            135deg,
+            rgba(28, 31, 37, 0.55),
+            rgba(18, 20, 25, 0.48)
+        ) !important;
+
+    border: 1px solid rgba(255, 255, 255, 0.055) !important;
+
+    border-radius: 11px !important;
+
+    overflow: hidden;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) .ui.table > thead > tr {
+
+    background: rgba(0, 0, 0, 0.2) !important;
+
+    border-color: rgba(255, 255, 255, 0.04) !important;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) .ui.table > tr:hover {
+
+    background: rgba(74, 144, 226, 0.08) !important;
+}
+
+
+/* =========================================================
+   30. RESPONSIVE — MOBILE
    ========================================================= */
 
 @media (max-width: 768px) {
 
     .ui.menu {
 
-        border-radius:
-            0 0 10px 10px !important;
+        border-radius: 0 0 10px 10px !important;
 
-        margin-bottom:
-            12px !important;
+        margin-bottom: 12px !important;
     }
 
     :is(
@@ -824,36 +1171,119 @@ footer .ui.right {
         .repository.file.list
     ) {
 
-        border-radius:
-            11px !important;
+        border-radius: 11px !important;
     }
 
     footer {
 
-        padding:
-            5px 12px !important;
+        padding: 6px 12px !important;
 
-        border-radius:
-            10px 10px 0 0 !important;
+        border-radius: 10px 10px 0 0 !important;
+
+        font-size: 12px !important;
     }
 
-    /* На мобильных важные кнопки ещё плотнее */
-
-    :is(
-        html.theme-gitea-dark,
-        html.theme-arc-green,
-        html.theme-gitea-auto.theme-gitea-dark
-    ) .ui.primary.button,
-    :is(
-        html.theme-gitea-dark,
-        html.theme-arc-green,
-        html.theme-gitea-auto.theme-gitea-dark
-    ) button[type="submit"] {
+    :is(html.theme-gitea-dark, html.theme-arc-green) :is(
+        .ui.primary.button,
+        button[type="submit"]
+    ) {
 
         background:
-            rgba(74,144,226,.94) !important;
+            linear-gradient(
+                135deg,
+                rgba(74, 144, 226, 0.94),
+                rgba(64, 132, 210, 0.92)
+            ) !important;
 
         box-shadow:
-            0 4px 14px rgba(0,0,0,.30) !important;
+            0 4px 14px rgba(74, 144, 226, 0.35),
+            inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+
+        width: 100% !important;
+    }
+
+    .ui.button {
+
+        padding: 11px 18px !important;
+
+        font-size: 14px !important;
+    }
+
+    :is(
+        input,
+        textarea,
+        select
+    ) {
+
+        font-size: 16px !important;
     }
 }
+
+
+/* =========================================================
+   31. ACCESSIBILITY & FOCUS STATES
+   ========================================================= */
+
+:focus-visible {
+
+    outline: 2px solid var(--primary-dark) !important;
+
+    outline-offset: 2px !important;
+}
+
+
+:is(html.theme-gitea-dark, html.theme-arc-green) :focus-visible {
+
+    outline: 2px solid rgba(74, 144, 226, 0.6) !important;
+}
+
+
+/* =========================================================
+   32. ANIMATIONS & TRANSITIONS
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+
+        animation-duration: 0.01ms !important;
+
+        animation-iteration-count: 1 !important;
+
+        transition-duration: 0.01ms !important;
+    }
+}
+
+
+/* =========================================================
+   33. PRINT STYLES
+   ========================================================= */
+
+@media print {
+
+    html,
+    body {
+
+        background: white !important;
+    }
+
+    .ui.menu,
+    footer {
+
+        display: none !important;
+    }
+
+    :is(
+        .ui.segment,
+        .box,
+        .ui.card
+    ) {
+
+        box-shadow: none !important;
+
+        border: 1px solid #ddd !important;
+    }
+}
+
