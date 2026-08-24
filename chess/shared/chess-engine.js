@@ -55,7 +55,6 @@ function cloneState(state) {
 
     return {
         board,
-
         turn: state.turn,
 
         castling: {
@@ -64,7 +63,6 @@ function cloneState(state) {
         },
 
         ep: state.ep,
-
         halfmove: state.halfmove,
         fullmove: state.fullmove,
 
@@ -91,7 +89,6 @@ export class ChessEngine {
     }
 
     loadFen(fen) {
-
         const parts = String(fen).trim().split(/\s+/);
 
         const placement = parts[0];
@@ -107,7 +104,6 @@ export class ChessEngine {
         let file = 0;
 
         for (const char of placement) {
-
             if (char === "/") {
                 rank--;
                 file = 0;
@@ -159,12 +155,10 @@ export class ChessEngine {
 
             halfmove,
             fullmove,
-
             lastMove: null
         };
 
         this.history = [];
-
         this.positions = new Map();
 
         this.positions.set(
@@ -174,15 +168,12 @@ export class ChessEngine {
     }
 
     get fen() {
-
         let result = "";
 
         for (let rank = 7; rank >= 0; rank--) {
-
             let empty = 0;
 
             for (let file = 0; file < 8; file++) {
-
                 const piece =
                     this.state.board[
                         square(file, rank)
@@ -231,13 +222,11 @@ export class ChessEngine {
     }
 
     positionKey(state) {
-
         const pieces = Object
             .keys(state.board)
             .sort()
             .map(sq => {
                 const p = state.board[sq];
-
                 return `${sq}${p.color}${p.type}`;
             })
             .join(",");
@@ -262,7 +251,6 @@ export class ChessEngine {
     }
 
     movesFrom(from) {
-
         const piece = this.state.board[from];
 
         if (!piece) {
@@ -281,7 +269,6 @@ export class ChessEngine {
     }
 
     legalMoves(color = this.state.turn) {
-
         const pseudo =
             this.pseudoMoves(
                 this.state,
@@ -291,7 +278,6 @@ export class ChessEngine {
         const result = [];
 
         for (const move of pseudo) {
-
             const next =
                 this.applyMoveToState(
                     this.state,
@@ -307,11 +293,9 @@ export class ChessEngine {
     }
 
     pseudoMoves(state, color) {
-
         const result = [];
 
         for (const [from, piece] of Object.entries(state.board)) {
-
             if (piece.color !== color) {
                 continue;
             }
@@ -323,7 +307,6 @@ export class ChessEngine {
             }
 
             switch (piece.type) {
-
                 case "p":
                     this.pawnMoves(
                         state,
@@ -419,7 +402,6 @@ export class ChessEngine {
         promotion = null,
         special = null
     ) {
-
         const target = state.board[to];
 
         if (
@@ -454,7 +436,6 @@ export class ChessEngine {
         pos,
         result
     ) {
-
         const direction =
             piece.color === "w"
                 ? 1
@@ -480,12 +461,10 @@ export class ChessEngine {
             one &&
             !state.board[one]
         ) {
-
             if (
                 pos.rank + direction ===
                 promotionRank
             ) {
-
                 for (const type of PIECES) {
                     this.addMove(
                         state,
@@ -495,9 +474,7 @@ export class ChessEngine {
                         type
                     );
                 }
-
             } else {
-
                 this.addMove(
                     state,
                     result,
@@ -508,7 +485,6 @@ export class ChessEngine {
                 if (
                     pos.rank === startRank
                 ) {
-
                     const two =
                         safeSquare(
                             pos.file,
@@ -534,7 +510,6 @@ export class ChessEngine {
         }
 
         for (const df of [-1, 1]) {
-
             const to =
                 safeSquare(
                     pos.file + df,
@@ -553,12 +528,10 @@ export class ChessEngine {
                 target.color !== piece.color &&
                 target.type !== "k"
             ) {
-
                 if (
                     pos.rank + direction ===
                     promotionRank
                 ) {
-
                     for (const type of PIECES) {
                         this.addMove(
                             state,
@@ -568,9 +541,7 @@ export class ChessEngine {
                             type
                         );
                     }
-
                 } else {
-
                     this.addMove(
                         state,
                         result,
@@ -578,11 +549,9 @@ export class ChessEngine {
                         to
                     );
                 }
-
             } else if (
                 state.ep === to
             ) {
-
                 this.addMove(
                     state,
                     result,
@@ -602,7 +571,6 @@ export class ChessEngine {
         pos,
         result
     ) {
-
         const jumps = [
             [1, 2],
             [2, 1],
@@ -615,7 +583,6 @@ export class ChessEngine {
         ];
 
         for (const [df, dr] of jumps) {
-
             const to =
                 safeSquare(
                     pos.file + df,
@@ -641,14 +608,9 @@ export class ChessEngine {
         result,
         directions
     ) {
-
         for (const [df, dr] of directions) {
-
-            let file =
-                pos.file + df;
-
-            let rank =
-                pos.rank + dr;
+            let file = pos.file + df;
+            let rank = pos.rank + dr;
 
             while (
                 file >= 0 &&
@@ -656,7 +618,6 @@ export class ChessEngine {
                 rank >= 0 &&
                 rank < 8
             ) {
-
                 const to =
                     square(file, rank);
 
@@ -664,16 +625,13 @@ export class ChessEngine {
                     state.board[to];
 
                 if (!target) {
-
                     this.addMove(
                         state,
                         result,
                         from,
                         to
                     );
-
                 } else {
-
                     if (
                         target.color !== piece.color &&
                         target.type !== "k"
@@ -702,10 +660,8 @@ export class ChessEngine {
         pos,
         result
     ) {
-
         for (let df = -1; df <= 1; df++) {
             for (let dr = -1; dr <= 1; dr++) {
-
                 if (!df && !dr) {
                     continue;
                 }
@@ -757,7 +713,6 @@ export class ChessEngine {
             !state.board[square(6, rank)] &&
             state.board[square(7, rank)]?.type === "r"
         ) {
-
             if (
                 !this.isAttacked(
                     state,
@@ -770,7 +725,6 @@ export class ChessEngine {
                     enemy
                 )
             ) {
-
                 this.addMove(
                     state,
                     result,
@@ -789,7 +743,6 @@ export class ChessEngine {
             !state.board[square(3, rank)] &&
             state.board[square(0, rank)]?.type === "r"
         ) {
-
             if (
                 !this.isAttacked(
                     state,
@@ -802,7 +755,6 @@ export class ChessEngine {
                     enemy
                 )
             ) {
-
                 this.addMove(
                     state,
                     result,
@@ -819,7 +771,6 @@ export class ChessEngine {
         state,
         move
     ) {
-
         const next =
             cloneState(state);
 
@@ -833,7 +784,6 @@ export class ChessEngine {
         delete next.board[move.from];
 
         if (move.special === "ep") {
-
             const target =
                 parseSquare(move.to);
 
@@ -858,7 +808,6 @@ export class ChessEngine {
         };
 
         if (piece.type === "k") {
-
             next.castling[piece.color].k = false;
             next.castling[piece.color].q = false;
 
@@ -870,7 +819,6 @@ export class ChessEngine {
             if (
                 move.special === "castle-k"
             ) {
-
                 delete next.board[
                     square(7, rank)
                 ];
@@ -886,7 +834,6 @@ export class ChessEngine {
             if (
                 move.special === "castle-q"
             ) {
-
                 delete next.board[
                     square(0, rank)
                 ];
@@ -901,7 +848,6 @@ export class ChessEngine {
         }
 
         if (piece.type === "r") {
-
             if (move.from === "a1")
                 next.castling.w.q = false;
 
@@ -916,7 +862,6 @@ export class ChessEngine {
         }
 
         if (captured?.type === "r") {
-
             if (move.to === "a1")
                 next.castling.w.q = false;
 
@@ -932,10 +877,7 @@ export class ChessEngine {
 
         next.ep = null;
 
-        if (
-            piece.type === "p"
-        ) {
-
+        if (piece.type === "p") {
             const from =
                 parseSquare(move.from);
 
@@ -948,7 +890,6 @@ export class ChessEngine {
                     from.rank
                 ) === 2
             ) {
-
                 next.ep =
                     square(
                         from.file,
@@ -977,7 +918,6 @@ export class ChessEngine {
         state,
         color
     ) {
-
         const king =
             Object.entries(
                 state.board
@@ -1003,7 +943,6 @@ export class ChessEngine {
         target,
         attacker
     ) {
-
         const pos =
             parseSquare(target);
 
@@ -1023,7 +962,6 @@ export class ChessEngine {
         ];
 
         for (const [df, dr] of knightMoves) {
-
             const sq =
                 safeSquare(
                     pos.file + df,
@@ -1046,7 +984,6 @@ export class ChessEngine {
 
         for (let df = -1; df <= 1; df++) {
             for (let dr = -1; dr <= 1; dr++) {
-
                 if (!df && !dr) {
                     continue;
                 }
@@ -1078,7 +1015,6 @@ export class ChessEngine {
                 : 1;
 
         for (const df of [-1, 1]) {
-
             const sq =
                 safeSquare(
                     pos.file + df,
@@ -1143,7 +1079,6 @@ export class ChessEngine {
         ];
 
         for (const ray of rays) {
-
             let file =
                 pos.file + ray.df;
 
@@ -1156,7 +1091,6 @@ export class ChessEngine {
                 rank >= 0 &&
                 rank < 8
             ) {
-
                 const sq =
                     square(file, rank);
 
@@ -1164,7 +1098,6 @@ export class ChessEngine {
                     state.board[sq];
 
                 if (piece) {
-
                     if (
                         piece.color === attacker &&
                         ray.pieces.includes(piece.type)
@@ -1184,7 +1117,6 @@ export class ChessEngine {
     }
 
     makeMove(input) {
-
         const from =
             String(input?.from || "")
                 .toLowerCase();
@@ -1217,11 +1149,8 @@ export class ChessEngine {
         let move = null;
 
         if (candidates.length === 1) {
-
             move = candidates[0];
-
         } else {
-
             move =
                 candidates.find(
                     candidate =>
@@ -1230,7 +1159,6 @@ export class ChessEngine {
         }
 
         if (!move) {
-
             return {
                 ok: false,
                 error: "Недопустимый ход."
@@ -1249,9 +1177,7 @@ export class ChessEngine {
                 : this.state.board[to] || null;
 
         const before =
-            cloneState(
-                this.state
-            );
+            cloneState(this.state);
 
         this.state =
             this.applyMoveToState(
@@ -1270,6 +1196,7 @@ export class ChessEngine {
             from,
             to,
             san,
+
             piece: {
                 ...piece
             },
@@ -1282,7 +1209,6 @@ export class ChessEngine {
 
         this.history.push({
             ...move,
-
             san,
 
             piece: {
@@ -1319,7 +1245,6 @@ export class ChessEngine {
         move,
         legalBefore
     ) {
-
         const piece =
             before.board[move.from];
 
@@ -1357,7 +1282,6 @@ export class ChessEngine {
             );
 
         if (conflicts.length) {
-
             const from =
                 parseSquare(move.from);
 
@@ -1383,10 +1307,7 @@ export class ChessEngine {
         }
 
         if (move.capture) {
-
-            if (
-                piece.type === "p"
-            ) {
+            if (piece.type === "p") {
                 san += move.from[0];
             }
 
@@ -1413,7 +1334,6 @@ export class ChessEngine {
         move,
         san
     ) {
-
         const next =
             this.applyMoveToState(
                 before,
@@ -1426,7 +1346,6 @@ export class ChessEngine {
                 next.turn
             )
         ) {
-
             const replies =
                 this.legalMovesForState(
                     next,
@@ -1450,7 +1369,6 @@ export class ChessEngine {
         state,
         color
     ) {
-
         const pseudo =
             this.pseudoMoves(
                 state,
@@ -1459,7 +1377,6 @@ export class ChessEngine {
 
         return pseudo.filter(
             move => {
-
                 const next =
                     this.applyMoveToState(
                         state,
@@ -1475,7 +1392,6 @@ export class ChessEngine {
     }
 
     getStatus() {
-
         const color =
             this.state.turn;
 
@@ -1489,9 +1405,7 @@ export class ChessEngine {
             );
 
         if (!moves.length) {
-
             if (check) {
-
                 return {
                     phase: "checkmate",
                     turn: color,
@@ -1509,7 +1423,6 @@ export class ChessEngine {
         if (
             this.state.halfmove >= 100
         ) {
-
             return {
                 phase: "draw",
                 reason: "50-move",
@@ -1525,7 +1438,6 @@ export class ChessEngine {
         if (
             (this.positions.get(key) || 0) >= 3
         ) {
-
             return {
                 phase: "draw",
                 reason: "threefold",
@@ -1534,7 +1446,6 @@ export class ChessEngine {
         }
 
         if (this.insufficientMaterial()) {
-
             return {
                 phase: "draw",
                 reason: "insufficient-material",
@@ -1543,7 +1454,6 @@ export class ChessEngine {
         }
 
         if (check) {
-
             return {
                 phase: "check",
                 turn: color
@@ -1557,7 +1467,6 @@ export class ChessEngine {
     }
 
     insufficientMaterial() {
-
         const pieces =
             Object.values(
                 this.state.board
@@ -1586,7 +1495,6 @@ export class ChessEngine {
                     piece.type === "b"
             )
         ) {
-
             const bishops =
                 Object.entries(
                     this.state.board
@@ -1617,14 +1525,12 @@ export class ChessEngine {
     }
 
     material() {
-
         const captured = {
             w: [],
             b: []
         };
 
         for (const move of this.history) {
-
             if (!move.captured) {
                 continue;
             }
@@ -1667,7 +1573,6 @@ export class ChessEngine {
     }
 
     getSnapshot() {
-
         return {
             ...cloneState(
                 this.state
@@ -1704,7 +1609,6 @@ export class ChessEngine {
     }
 
     get pgn() {
-
         let result = "";
 
         for (
@@ -1712,19 +1616,15 @@ export class ChessEngine {
             i < this.history.length;
             i++
         ) {
-
             const move =
                 this.history[i];
 
             if (
                 move.piece.color === "w"
             ) {
-
                 result +=
                     `${Math.floor(i / 2) + 1}. ${move.san} `;
-
             } else {
-
                 result +=
                     `${move.san} `;
             }
@@ -1736,16 +1636,13 @@ export class ChessEngine {
         if (
             status.phase === "checkmate"
         ) {
-
             result +=
                 status.winner === "w"
                     ? "1-0"
                     : "0-1";
-
         } else if (
             status.phase === "draw"
         ) {
-
             result += "1/2-1/2";
         }
 
@@ -1753,7 +1650,6 @@ export class ChessEngine {
     }
 
     undo() {
-
         const last =
             this.history.pop();
 
@@ -1786,6 +1682,48 @@ export class ChessEngine {
             last.before;
 
         return true;
+    }
+
+    static evaluateStatus(state) {
+        const engine = new ChessEngine();
+        engine.state = cloneState(state);
+        return engine.getStatus();
+    }
+
+    static generateLegalMovesForState(
+        state,
+        color = state.turn
+    ) {
+        const engine = new ChessEngine();
+        engine.state = cloneState(state);
+
+        return engine.legalMovesForState(
+            engine.state,
+            color
+        );
+    }
+
+    static playMove(
+        state,
+        move,
+        options = {}
+    ) {
+        const engine = new ChessEngine();
+        engine.state = cloneState(state);
+
+        const next =
+            engine.applyMoveToState(
+                engine.state,
+                move
+            );
+
+        if (options.computeStatus) {
+            const probe = new ChessEngine();
+            probe.state = next;
+            next.status = probe.getStatus();
+        }
+
+        return next;
     }
 }
 
