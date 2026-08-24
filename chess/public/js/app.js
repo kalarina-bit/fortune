@@ -1,32 +1,122 @@
 import {
-    ChessEngine
+    ChessEngine,
+    ChessRules,
 } from "/shared/chess-engine.js";
+
+import {
+    chooseComputerMove,
+} from "/js/ai.js";
 
 
 /* =========================================================
    PIECES
 ========================================================= */
 
-
-const PIECES = {
-
+const PIECE_GLYPHS = {
     w: {
-        k: "♔",
-        q: "♕",
-        r: "♖",
-        b: "♗",
-        n: "♘",
-        p: "♙"
+        K: "♔",
+        Q: "♕",
+        R: "♖",
+        B: "♗",
+        N: "♘",
+        P: "♙",
     },
 
     b: {
-        k: "♚",
-        q: "♛",
-        r: "♜",
-        b: "♝",
-        n: "♞",
-        p: "♟"
-    }
+        K: "♚",
+        Q: "♛",
+        R: "♜",
+        B: "♝",
+        N: "♞",
+        P: "♟",
+    },
+};
+
+
+/* =========================================================
+   STORAGE
+========================================================= */
+
+const STORAGE_KEYS = {
+    name: "chess-party:name",
+    partyIds: "chess-party:party-ids",
+};
+
+
+/* =========================================================
+   TIME CONTROLS
+========================================================= */
+
+const TIME_CONTROLS = {
+    none: 0,
+
+    "1+0": 60,
+    "3+0": 180,
+    "3+2": 180,
+    "5+0": 300,
+    "5+3": 300,
+    "10+0": 600,
+    "15+10": 900,
+    "30+0": 1800,
+    "30+20": 1800,
+};
+
+
+/* =========================================================
+   ELEMENTS
+========================================================= */
+
+const elements = {
+    modeBadge: document.querySelector("#modeBadge"),
+    connectionBadge: document.querySelector("#connectionBadge"),
+
+    board: document.querySelector("#board"),
+
+    statusMessage: document.querySelector("#statusMessage"),
+    turnBadge: document.querySelector("#turnBadge"),
+
+    modeAiButton: document.querySelector("#modeAiButton"),
+    modePartyButton: document.querySelector("#modePartyButton"),
+
+    playerNameInput: document.querySelector("#playerNameInput"),
+
+    aiControls: document.querySelector("#aiControls"),
+    partyControls: document.querySelector("#partyControls"),
+
+    aiLevelSelect: document.querySelector("#aiLevelSelect"),
+    playerColorSelect: document.querySelector("#playerColorSelect"),
+
+    aiTimeControl: document.querySelector("#aiClockSelect"),
+    partyTimeControl: document.querySelector("#partyClockSelect"),
+
+    startAiButton: document.querySelector("#startAiButton"),
+
+    createPartyButton: document.querySelector("#createPartyButton"),
+    partyCodeInput: document.querySelector("#partyCodeInput"),
+    joinPartyButton: document.querySelector("#joinPartyButton"),
+    leavePartyButton: document.querySelector("#leavePartyButton"),
+
+    partySummary: document.querySelector("#partySummary"),
+    copyInviteButton: document.querySelector("#copyInviteButton"),
+
+    flipBoardButton: document.querySelector("#flipBoardButton"),
+
+    whitePlayerLabel: document.querySelector("#whitePlayerLabel"),
+    blackPlayerLabel: document.querySelector("#blackPlayerLabel"),
+
+    rosterWhite: document.querySelector("#rosterWhite"),
+    rosterBlack: document.querySelector("#rosterBlack"),
+
+    spectatorList: document.querySelector("#spectatorList"),
+    spectatorCount: document.querySelector("#spectatorCount"),
+
+    whiteClock: document.querySelector("#whiteClock"),
+    blackClock: document.querySelector("#blackClock"),
+
+    promotionDialog: document.querySelector("#promotionDialog"),
+    promotionOptions: document.querySelector("#promotionOptions"),
+
+    toastHost: document.querySelector("#toastHost"),
 };
 
 
@@ -34,1877 +124,189 @@ const PIECES = {
    STATE
 ========================================================= */
 
+const appState = {
+    mode: "ai",
 
-const state = {
+    engine: new ChessEngine(),
 
-    mode:
-        "ai",
+    orientation: "w",
+    selectedSquare: null,
 
-    engine:
-        new ChessEngine(),
+    aiLevel: "intermediate",
+    playerColor: "w",
+    aiTimeControl: "10+0",
 
-    orientation:
-        "w",
+    isAiThinking: false,
+    aiMoveTimer: null,
+    aiClockTimer: null,
 
-    selected:
-        null,
+    pendingPromotionMoves: null,
 
-    legalMoves:
-        [],
+    playerName: "Guest",
 
-    aiColor:
-        "b",
+    party: null,
+    partySnapshot: null,
+    partyStream: null,
 
-    aiThinking:
-        false,
+    gameOver: false,
+    gameOverMessage: null,
 
-    aiTimer:
-        null,
-
-    gameStarted:
-        false,
-
-
-    party:
-        null,
-
-    partyClientId:
-        null,
-
-    partyEvents:
-        null,
-
-    partyReconnectTimer:
-        null,
-
-
-    promotionResolver:
-        null,
-
-
-    clocks: {
-
-        white:
-            600,
-
-        black:
-            600,
-
-        running:
-            false,
-
-        turn:
-            "w"
+    localClocks: {
+        white: 0,
+        black: 0,
+        running: false,
+        turn: "w",
+        lastTick: 0,
     },
-
-
-    clockTimer:
-        null,
-
-
-    /*
-     * Local AI clock timestamp.
-     */
-
-    localClockLastTick:
-        Date.now(),
-
-
-    /*
-     * Party clock synchronization.
-     */
-
-    partyClockSyncedAt:
-        Date.now()
 };
 
 
 /* =========================================================
-   DOM
+   HELPERS
 ========================================================= */
 
-
-const $ =
-    id =>
-        document.getElementById(id);
-
-
-const boardElement =
-    $("board");
-
-const statusMessage =
-    $("statusMessage");
-
-const turnBadge =
-    $("turnBadge");
-
-const connectionBadge =
-    $("connectionBadge");
-
-const modeBadge =
-    $("modeBadge");
-
-const aiControls =
-    $("aiControls");
-
-const partyControls =
-    $("partyControls");
-
-
-const whitePlayerLabel =
-    $("whitePlayerLabel");
-
-const blackPlayerLabel =
-    $("blackPlayerLabel");
-
-const whiteClock =
-    $("whiteClock");
-
-const blackClock =
-    $("blackClock");
-
-
-const spectatorCount =
-    $("spectatorCount");
-
-const spectatorList =
-    $("spectatorList");
-
-
-const toastHost =
-    $("toastHost");
-
-
-const promotionDialog =
-    $("promotionDialog");
-
-const promotionOptions =
-    $("promotionOptions");
-
-
-/*
- * These were missing in the previous version.
- */
-
-const modeAiButton =
-    $("modeAiButton");
-
-const modePartyButton =
-    $("modePartyButton");
-
-
-const files =
-    "abcdefgh";
-
-
-/* =========================================================
-   UI
-========================================================= */
-
-
-function showToast(
-    message,
-    type = ""
-) {
-
-    if (!toastHost) {
-        return;
-    }
-
-    const element =
-        document.createElement(
-            "div"
-        );
-
-    element.className =
-        `toast ${type}`;
-
-    element.textContent =
-        message;
-
-    toastHost.appendChild(
-        element
-    );
-
-    setTimeout(
-        () => element.remove(),
-        3200
+function currentStatus() {
+    return (
+        appState.engine.state.status ||
+        ChessEngine.evaluateStatus(
+            appState.engine.state
+        )
     );
 }
 
 
-function setStatus(
-    message
-) {
-
-    if (statusMessage) {
-
-        statusMessage.textContent =
-            message;
+function currentHumanColor() {
+    if (appState.mode === "ai") {
+        return appState.playerColor;
     }
+
+    if (!appState.party) {
+        return null;
+    }
+
+    if (appState.party.role === "white") {
+        return "w";
+    }
+
+    if (appState.party.role === "black") {
+        return "b";
+    }
+
+    return null;
 }
 
 
-function colorName(
-    color
-) {
+function isHumanTurn() {
+    const color = currentHumanColor();
+    const status = currentStatus();
 
-    return color === "w"
-        ? "белых"
-        : "черных";
+    return Boolean(
+        color &&
+        status.phase === "playing" &&
+        appState.engine.state.turn === color &&
+        !appState.isAiThinking &&
+        !appState.gameOver
+    );
 }
 
 
-function getSquare(
-    file,
-    rank
-) {
-
-    return `${files[file]}${rank + 1}`;
-}
-
-
-function getCoordinates(
-    index
-) {
-
-    if (
-        state.orientation === "w"
-    ) {
-
-        return {
-
-            file:
-                index % 8,
-
-            rank:
-                7 -
-                Math.floor(
-                    index / 8
-                )
-        };
-    }
-
-    return {
-
-        file:
-            7 -
-            index % 8,
-
-        rank:
-            Math.floor(
-                index / 8
-            )
-    };
-}
-
-
-/* =========================================================
-   BOARD
-========================================================= */
-
-
-function renderBoard() {
-
-    if (!boardElement) {
-        return;
-    }
-
-    boardElement.innerHTML =
-        "";
-
-
-    const snapshot =
-        state.engine.state;
-
-
-    const status =
-        state.engine.getStatus();
-
-
-    let checkedKing =
-        null;
-
-
-    if (
-        status.phase === "check"
-    ) {
-
-        for (
-            const [
-                squareName,
-                piece
-            ]
-            of Object.entries(
-                snapshot.board
-            )
-        ) {
-
-            if (
-                piece.type === "k" &&
-                piece.color ===
-                    snapshot.turn
-            ) {
-
-                checkedKing =
-                    squareName;
-
-                break;
-            }
-        }
-    }
-
-
-    const legalMap =
-        new Map();
-
-
-    for (
-        const move
-        of state.legalMoves
-    ) {
-
-        legalMap.set(
-            move.to,
-            move
-        );
-    }
-
-
-    for (
-        let index = 0;
-        index < 64;
-        index++
-    ) {
-
-        const {
-            file,
-            rank
-        } =
-            getCoordinates(
-                index
-            );
-
-
-        const squareName =
-            getSquare(
-                file,
-                rank
-            );
-
-
-        const element =
-            document.createElement(
-                "button"
-            );
-
-
-        element.type =
-            "button";
-
-
-        element.className =
-            "square";
-
-
-        if (
-            (file + rank) % 2 === 0
-        ) {
-
-            element.classList.add(
-                "light"
-            );
-
-        } else {
-
-            element.classList.add(
-                "dark"
-            );
-        }
-
-
-        if (
-            state.selected ===
-            squareName
-        ) {
-
-            element.classList.add(
-                "selected"
-            );
-        }
-
-
-        if (
-            snapshot.lastMove &&
-            (
-                snapshot.lastMove.from ===
-                    squareName ||
-                snapshot.lastMove.to ===
-                    squareName
-            )
-        ) {
-
-            element.classList.add(
-                "last-move"
-            );
-        }
-
-
-        if (
-            checkedKing ===
-            squareName
-        ) {
-
-            element.classList.add(
-                "check-square"
-            );
-        }
-
-
-        const legal =
-            legalMap.get(
-                squareName
-            );
-
-
-        if (legal) {
-
-            if (
-                legal.capture
-            ) {
-
-                element.classList.add(
-                    "capture-target"
-                );
-
-            } else {
-
-                element.classList.add(
-                    "legal-target"
-                );
-            }
-        }
-
-
-        const piece =
-            snapshot.board[
-                squareName
-            ];
-
-
-        if (piece) {
-
-            const span =
-                document.createElement(
-                    "span"
-                );
-
-
-            span.className =
-                `piece ${
-                    piece.color === "w"
-                        ? "white"
-                        : "black"
-                }`;
-
-
-            span.textContent =
-                PIECES[
-                    piece.color
-                ][
-                    piece.type
-                ];
-
-
-            element.appendChild(
-                span
-            );
-        }
-
-
-        element.dataset.square =
-            squareName;
-
-
-        element.addEventListener(
-            "click",
-            () =>
-                handleSquareClick(
-                    squareName
-                )
-        );
-
-
-        boardElement.appendChild(
-            element
-        );
-    }
-}
-
-
-/* =========================================================
-   MOVE PERMISSION
-========================================================= */
-
-
-function canUserMove() {
-
-    if (
-        !state.gameStarted
-    ) {
-
-        return false;
-    }
-
-
-    const status =
-        state.engine.getStatus();
-
-
-    if (
+function isFinished() {
+    const status = currentStatus();
+
+    return Boolean(
+        appState.gameOver ||
         status.phase === "checkmate" ||
         status.phase === "draw"
-    ) {
-
-        return false;
-    }
-
-
-    if (
-        state.aiThinking
-    ) {
-
-        return false;
-    }
-
-
-    if (
-        state.mode === "party"
-    ) {
-
-        if (!state.party) {
-            return false;
-        }
-
-
-        const role =
-            state.party.you?.role;
-
-
-        if (
-            role !== "white" &&
-            role !== "black"
-        ) {
-
-            return false;
-        }
-
-
-        const myColor =
-            role === "white"
-                ? "w"
-                : "b";
-
-
-        return (
-            state.engine.state.turn ===
-            myColor
-        );
-    }
-
-
-    return (
-        state.engine.state.turn !==
-        state.aiColor
     );
 }
 
 
-/* =========================================================
-   BOARD CLICK
-========================================================= */
-
-
-function handleSquareClick(
-    squareName
-) {
-
-    if (
-        !canUserMove()
-    ) {
-
-        return;
+function getLegalMovesForSelected() {
+    if (!appState.selectedSquare) {
+        return [];
     }
 
-
-    const piece =
-        state.engine.getPiece(
-            squareName
-        );
-
-
-    if (!state.selected) {
-
-        if (
-            piece &&
-            piece.color ===
-                state.engine.state.turn
-        ) {
-
-            selectSquare(
-                squareName
-            );
-        }
-
-        return;
-    }
-
-
-    if (
-        state.selected ===
-        squareName
-    ) {
-
-        clearSelection();
-
-        return;
-    }
-
-
-    const move =
-        state.legalMoves.find(
-            item =>
-                item.to ===
-                squareName
-        );
-
-
-    if (move) {
-
-        if (
-            move.promotion
-        ) {
-
-            openPromotion(
-                move,
-                promotion =>
-                    performMove(
-                        move.from,
-                        move.to,
-                        promotion
-                    )
-            );
-
-        } else {
-
-            performMove(
-                move.from,
-                move.to,
-                null
-            );
-        }
-
-        return;
-    }
-
-
-    if (
-        piece &&
-        piece.color ===
-            state.engine.state.turn
-    ) {
-
-        selectSquare(
-            squareName
-        );
-
-        return;
-    }
-
-
-    clearSelection();
-}
-
-
-/* =========================================================
-   SELECTION
-========================================================= */
-
-
-function selectSquare(
-    squareName
-) {
-
-    state.selected =
-        squareName;
-
-    state.legalMoves =
-        state.engine.movesFrom(
-            squareName
-        );
-
-    renderBoard();
+    return appState.engine.getMovesFrom(
+        appState.selectedSquare
+    );
 }
 
 
 function clearSelection() {
-
-    state.selected =
-        null;
-
-    state.legalMoves =
-        [];
-
-    renderBoard();
+    appState.selectedSquare = null;
+    appState.pendingPromotionMoves = null;
 }
 
 
-/* =========================================================
-   PROMOTION
-========================================================= */
-
-
-function openPromotion(
-    move,
-    callback
-) {
-
-    if (
-        !promotionDialog ||
-        !promotionOptions
-    ) {
-
-        callback("q");
-
-        return;
-    }
-
-
-    promotionOptions.innerHTML =
-        "";
-
-
-    const color =
-        state.engine.state.turn;
-
-
-    for (
-        const type
-        of [
-            "q",
-            "r",
-            "b",
-            "n"
-        ]
-    ) {
-
-        const button =
-            document.createElement(
-                "button"
-            );
-
-
-        button.type =
-            "button";
-
-
-        button.textContent =
-            PIECES[
-                color
-            ][
-                type
-            ];
-
-
-        button.addEventListener(
-            "click",
-            () => {
-
-                promotionDialog
-                    .classList
-                    .add(
-                        "hidden"
-                    );
-
-
-                state.promotionResolver =
-                    null;
-
-
-                callback(
-                    type
-                );
-            }
-        );
-
-
-        promotionOptions.appendChild(
-            button
-        );
-    }
-
-
-    promotionDialog
-        .classList
-        .remove(
-            "hidden"
-        );
+function escapeHtml(value) {
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
 }
 
 
-/* =========================================================
-   MOVE
-========================================================= */
-
-
-function performMove(
-    from,
-    to,
-    promotion
-) {
-
-    if (
-        state.mode === "party"
-    ) {
-
-        performPartyMove(
-            from,
-            to,
-            promotion
-        );
-
-        return;
-    }
-
-
-    performAiGameMove(
-        from,
-        to,
-        promotion
-    );
-}
-
-
-/* =========================================================
-   AI GAME MOVE
-========================================================= */
-
-
-function performAiGameMove(
-    from,
-    to,
-    promotion
-) {
-
-    /*
-     * Update the local clock before
-     * modifying the chess position.
-     */
-
-    updateLocalClock();
-
-
-    if (
-        isLocalTimeout()
-    ) {
-
-        finishLocalTimeout();
-
-        return;
-    }
-
-
-    const movingColor =
-        state.engine.state.turn;
-
-
-    const result =
-        state.engine.makeMove({
-
-            from,
-
-            to,
-
-            promotion
-        });
-
-
-    if (!result.ok) {
-
-        showToast(
-            result.error,
-            "error"
-        );
-
-        clearSelection();
-
-        return;
-    }
-
-
-    applyLocalMoveClock(
-        movingColor
+function formatClock(seconds) {
+    const total = Math.max(
+        0,
+        Math.ceil(Number(seconds) || 0)
     );
 
+    const minutes = Math.floor(total / 60);
+    const secs = total % 60;
 
-    clearSelection();
+    if (minutes >= 60) {
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
 
-
-    state.gameStarted =
-        true;
-
-
-    updateGameUI();
-
-
-    if (
-        result.status.phase ===
-            "checkmate" ||
-        result.status.phase ===
-            "draw"
-    ) {
-
-        finishGame();
-
-        return;
-    }
-
-
-    if (
-        state.engine.state.turn ===
-        state.aiColor
-    ) {
-
-        scheduleAiMove();
-    }
-}
-
-
-/* =========================================================
-   AI
-========================================================= */
-
-
-function scheduleAiMove() {
-
-    if (
-        state.aiThinking
-    ) {
-
-        return;
-    }
-
-
-    if (
-        state.mode !== "ai"
-    ) {
-
-        return;
-    }
-
-
-    state.aiThinking =
-        true;
-
-
-    setStatus(
-        "Компьютер думает..."
-    );
-
-
-    renderBoard();
-
-
-    clearTimeout(
-        state.aiTimer
-    );
-
-
-    state.aiTimer =
-        setTimeout(
-            () => {
-
-                try {
-
-                    makeAiMove();
-
-                } finally {
-
-                    state.aiThinking =
-                        false;
-                }
-
-            },
-            getAiDelay()
+        return (
+            `${String(hours).padStart(2, "0")}:` +
+            `${String(mins).padStart(2, "0")}:` +
+            `${String(secs).padStart(2, "0")}`
         );
-}
-
-
-function getAiDelay() {
-
-    const level =
-        $("aiLevelSelect")?.value;
-
-
-    if (
-        level === "easy"
-    ) {
-
-        return 350;
     }
-
-
-    if (
-        level === "hard"
-    ) {
-
-        return 800;
-    }
-
-
-    return 550;
-}
-
-
-function makeAiMove() {
-
-    if (
-        state.mode !== "ai"
-    ) {
-
-        return;
-    }
-
-
-    updateLocalClock();
-
-
-    if (
-        isLocalTimeout()
-    ) {
-
-        finishLocalTimeout();
-
-        return;
-    }
-
-
-    const status =
-        state.engine.getStatus();
-
-
-    if (
-        status.phase === "checkmate" ||
-        status.phase === "draw"
-    ) {
-
-        return;
-    }
-
-
-    const legal =
-        state.engine.legalMoves(
-            state.aiColor
-        );
-
-
-    if (
-        !legal.length
-    ) {
-
-        updateGameUI();
-
-        return;
-    }
-
-
-    const level =
-        $("aiLevelSelect")?.value;
-
-
-    let move;
-
-
-    if (
-        level === "easy"
-    ) {
-
-        move =
-            legal[
-                Math.floor(
-                    Math.random() *
-                    legal.length
-                )
-            ];
-
-    } else {
-
-        move =
-            chooseAiMove(
-                legal,
-                level
-            );
-    }
-
-
-    const movingColor =
-        state.engine.state.turn;
-
-
-    const result =
-        state.engine.makeMove({
-
-            from:
-                move.from,
-
-            to:
-                move.to,
-
-            promotion:
-                move.promotion ||
-                null
-        });
-
-
-    if (!result.ok) {
-
-        showToast(
-            "ИИ не смог выполнить ход.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    applyLocalMoveClock(
-        movingColor
-    );
-
-
-    updateGameUI();
-
-
-    if (
-        result.status.phase ===
-            "checkmate" ||
-        result.status.phase ===
-            "draw"
-    ) {
-
-        finishGame();
-    }
-}
-
-
-function chooseAiMove(
-    moves,
-    level
-) {
-
-    let bestScore =
-        -Infinity;
-
-
-    let bestMoves =
-        [];
-
-
-    const values = {
-
-        p: 100,
-
-        n: 320,
-
-        b: 330,
-
-        r: 500,
-
-        q: 900,
-
-        k: 20000
-    };
-
-
-    for (
-        const move
-        of moves
-    ) {
-
-        let score =
-            Math.random() *
-            0.4;
-
-
-        if (
-            move.capture
-        ) {
-
-            score += 3;
-        }
-
-
-        if (
-            move.promotion
-        ) {
-
-            score += 8;
-        }
-
-
-        if (
-            move.to[1] === "4" ||
-            move.to[1] === "5"
-        ) {
-
-            score += 0.15;
-        }
-
-
-        /*
-         * Slight bonus for developing
-         * pieces and center control.
-         */
-
-        const piece =
-            state.engine.getPiece(
-                move.from
-            );
-
-
-        if (piece) {
-
-            if (
-                piece.type === "n" ||
-                piece.type === "b"
-            ) {
-
-                score += 0.1;
-            }
-        }
-
-
-        if (
-            move.capture
-        ) {
-
-            /*
-             * If ChessEngine exposes
-             * captured piece information,
-             * use it.
-             */
-
-            if (
-                move.captured?.type
-            ) {
-
-                score +=
-                    (
-                        values[
-                            move.captured.type
-                        ] || 0
-                    ) / 100;
-            }
-        }
-
-
-        if (
-            score >
-            bestScore
-        ) {
-
-            bestScore =
-                score;
-
-            bestMoves =
-                [move];
-
-        } else if (
-            Math.abs(
-                score -
-                bestScore
-            ) < 0.1
-        ) {
-
-            bestMoves.push(
-                move
-            );
-        }
-    }
-
-
-    return bestMoves[
-        Math.floor(
-            Math.random() *
-            bestMoves.length
-        )
-    ];
-}
-
-
-/* =========================================================
-   GAME END
-========================================================= */
-
-
-function finishGame() {
-
-    state.aiThinking =
-        false;
-
-
-    clearTimeout(
-        state.aiTimer
-    );
-
-
-    stopLocalClock();
-
-
-    updateGameUI();
-}
-
-
-/* =========================================================
-   AI CLOCK
-========================================================= */
-
-
-function parseClock(
-    value
-) {
-
-    if (
-        !value ||
-        value === "none"
-    ) {
-
-        return {
-
-            initial:
-                0,
-
-            increment:
-                0
-        };
-    }
-
-
-    const [
-        minutes,
-        increment
-    ] =
-        String(value)
-            .split("+");
-
-
-    return {
-
-        initial:
-            Number(minutes) *
-            60,
-
-        increment:
-            Number(increment || 0)
-    };
-}
-
-
-function resetClockFromSelect(
-    value
-) {
-
-    const control =
-        parseClock(
-            value
-        );
-
-
-    state.clocks = {
-
-        white:
-            control.initial,
-
-        black:
-            control.initial,
-
-        running:
-            control.initial > 0,
-
-        turn:
-            "w"
-    };
-
-
-    state.localClockLastTick =
-        Date.now();
-
-
-    updateClocks();
-}
-
-
-function updateLocalClock() {
-
-    if (
-        state.mode !== "ai"
-    ) {
-
-        return;
-    }
-
-
-    if (
-        !state.clocks.running
-    ) {
-
-        return;
-    }
-
-
-    if (
-        state.clocks.white <= 0 ||
-        state.clocks.black <= 0
-    ) {
-
-        return;
-    }
-
-
-    const now =
-        Date.now();
-
-
-    const elapsed =
-        (
-            now -
-            state.localClockLastTick
-        ) / 1000;
-
-
-    if (
-        elapsed <= 0
-    ) {
-
-        return;
-    }
-
-
-    const key =
-        state.clocks.turn === "w"
-            ? "white"
-            : "black";
-
-
-    state.clocks[key] =
-        Math.max(
-            0,
-            state.clocks[key] -
-            elapsed
-        );
-
-
-    state.localClockLastTick =
-        now;
-
-
-    if (
-        state.clocks[key] <= 0
-    ) {
-
-        state.clocks[key] =
-            0;
-
-        state.clocks.running =
-            false;
-    }
-}
-
-
-function applyLocalMoveClock(
-    movingColor
-) {
-
-    const value =
-        $("aiClockSelect")?.value;
-
-
-    const control =
-        parseClock(
-            value
-        );
-
-
-    if (
-        !control.initial
-    ) {
-
-        return;
-    }
-
-
-    const key =
-        movingColor === "w"
-            ? "white"
-            : "black";
-
-
-    state.clocks[key] +=
-        control.increment;
-
-
-    state.clocks.turn =
-        state.engine.state.turn;
-
-
-    state.clocks.running =
-        true;
-
-
-    state.localClockLastTick =
-        Date.now();
-
-
-    updateClocks();
-}
-
-
-function isLocalTimeout() {
-
-    if (
-        !state.clocks.running
-    ) {
-
-        return false;
-    }
-
 
     return (
-        state.clocks.white <= 0 ||
-        state.clocks.black <= 0
+        `${String(minutes).padStart(2, "0")}:` +
+        `${String(secs).padStart(2, "0")}`
     );
 }
 
 
-function finishLocalTimeout() {
-
-    const loser =
-        state.clocks.white <= 0
-            ? "w"
-            : "b";
-
-
-    const winner =
-        loser === "w"
-            ? "b"
-            : "w";
-
-
-    state.clocks.running =
-        false;
-
-
-    setStatus(
-        `Время вышло. Победили ${colorName(winner)}.`
-    );
-
-
-    showToast(
-        `Время ${colorName(loser)} вышло.`,
-        "error"
-    );
-
-
-    renderBoard();
-
-    updateClocks();
+function getIncrementForTimeControl(value) {
+    const parts = String(value || "").split("+");
+    return Number(parts[1] || 0);
 }
 
 
-function stopLocalClock() {
-
-    state.clocks.running =
-        false;
-
-    updateClocks();
+function getTimeControlSeconds(value) {
+    return TIME_CONTROLS[value] || 0;
 }
 
 
 /* =========================================================
-   UI STATE
+   TOAST
 ========================================================= */
 
-
-function updateGameUI() {
-
-    if (
-        state.mode === "ai"
-    ) {
-
-        updateLocalClock();
+function showToast(message, type = "info") {
+    if (!elements.toastHost) {
+        console.log(message);
+        return;
     }
 
+    const toast = document.createElement("div");
 
-    const status =
-        state.engine.getStatus();
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
 
+    elements.toastHost.appendChild(toast);
 
-    const turn =
-        state.engine.state.turn;
-
-
-    if (turnBadge) {
-
-        turnBadge.textContent =
-            `Ход ${colorName(turn)}`;
-
-
-        turnBadge.className =
-            `status-chip ${
-                turn === "w"
-                    ? "turn-white"
-                    : "turn-black"
-            }`;
-    }
-
-
-    if (
-        status.phase ===
-        "checkmate"
-    ) {
-
-        setStatus(
-            `Мат. Победили ${colorName(status.winner)}.`
-        );
-
-    } else if (
-        status.phase ===
-        "draw"
-    ) {
-
-        setStatus(
-            drawMessage(
-                status.reason
-            )
-        );
-
-    } else if (
-        status.phase ===
-        "check"
-    ) {
-
-        setStatus(
-            `Шах — ход ${colorName(turn)}.`
-        );
-
-    } else if (
-        state.mode ===
-        "party"
-    ) {
-
-        const role =
-            state.party?.you?.role;
-
-
-        if (
-            role === "spectator"
-        ) {
-
-            setStatus(
-                `Ход ${colorName(turn)}. Вы зритель.`
-            );
-
-        } else if (
-            role === "white" ||
-            role === "black"
-        ) {
-
-            const myColor =
-                role === "white"
-                    ? "w"
-                    : "b";
-
-
-            setStatus(
-                myColor === turn
-                    ? "Ваш ход."
-                    : "Ход соперника."
-            );
-
-        } else {
-
-            setStatus(
-                "Ожидание игрока."
-            );
-        }
-
-    } else if (
-        state.gameStarted
-    ) {
-
-        setStatus(
-            turn === state.aiColor
-                ? "Ход компьютера."
-                : "Ваш ход."
-        );
-
-    } else {
-
-        setStatus(
-            "Новая игра готова."
-        );
-    }
-
-
-    renderBoard();
-
-    updateClocks();
-}
-
-
-function drawMessage(
-    reason
-) {
-
-    switch (reason) {
-
-        case "stalemate":
-            return "Ничья — пат.";
-
-        case "50-move":
-            return "Ничья — правило 50 ходов.";
-
-        case "threefold":
-            return "Ничья — троекратное повторение.";
-
-        case "insufficient-material":
-            return "Ничья — недостаточно материала.";
-
-        default:
-            return "Ничья.";
-    }
-}
-
-
-/* =========================================================
-   AI NEW GAME
-========================================================= */
-
-
-function startNewAiGame() {
-
-    closePartyEvents();
-
-
-    state.mode =
-        "ai";
-
-
-    state.party =
-        null;
-
-
-    state.partyClientId =
-        null;
-
-
-    state.engine =
-        new ChessEngine();
-
-
-    state.selected =
-        null;
-
-
-    state.legalMoves =
-        [];
-
-
-    state.gameStarted =
-        true;
-
-
-    state.aiThinking =
-        false;
-
-
-    clearTimeout(
-        state.aiTimer
+    window.setTimeout(
+        () => toast.remove(),
+        3200
     );
-
-
-    const selectedColor =
-        $("playerColorSelect")?.value ||
-        "w";
-
-
-    state.aiColor =
-        selectedColor === "w"
-            ? "b"
-            : "w";
-
-
-    state.orientation =
-        selectedColor;
-
-
-    setupAiPlayers();
-
-
-    resetClockFromSelect(
-        $("aiClockSelect")?.value
-    );
-
-
-    updateGameUI();
-
-
-    if (
-        state.aiColor === "w"
-    ) {
-
-        scheduleAiMove();
-    }
-}
-
-
-function setupAiPlayers() {
-
-    const name =
-        getPlayerName();
-
-
-    if (
-        state.aiColor === "b"
-    ) {
-
-        whitePlayerLabel.textContent =
-            name;
-
-        blackPlayerLabel.textContent =
-            "Компьютер";
-
-    } else {
-
-        whitePlayerLabel.textContent =
-            "Компьютер";
-
-        blackPlayerLabel.textContent =
-            name;
-    }
-}
-
-
-function getPlayerName() {
-
-    const value =
-        $("playerNameInput")
-            ?.value
-            ?.trim();
-
-
-    return value ||
-        "Вы";
 }
 
 
@@ -1912,203 +314,1285 @@ function getPlayerName() {
    MODE
 ========================================================= */
 
+function setMode(mode) {
+    appState.mode = mode;
 
-function switchMode(
-    mode
-) {
+    const isAi = mode === "ai";
+    const isParty = mode === "party";
 
-    if (
-        mode === "ai"
-    ) {
+    elements.modeAiButton?.classList.toggle(
+        "active",
+        isAi
+    );
 
-        state.mode =
-            "ai";
+    elements.modePartyButton?.classList.toggle(
+        "active",
+        isParty
+    );
 
+    elements.aiControls?.classList.toggle(
+        "hidden",
+        !isAi
+    );
 
-        modeAiButton?.classList.add(
-            "active"
-        );
+    elements.partyControls?.classList.toggle(
+        "hidden",
+        !isParty
+    );
 
-
-        modePartyButton?.classList.remove(
-            "active"
-        );
-
-
-        aiControls?.classList.remove(
-            "hidden"
-        );
-
-
-        partyControls?.classList.add(
-            "hidden"
-        );
-
-
-        if (modeBadge) {
-
-            modeBadge.textContent =
-                "AI Арена";
-        }
-
-
-        if (connectionBadge) {
-
-            connectionBadge.textContent =
-                "Соло";
-
-            connectionBadge.className =
-                "status-chip connection-solo";
-        }
-
-
-        return;
+    if (elements.modeBadge) {
+        elements.modeBadge.textContent =
+            isAi
+                ? "AI Arena"
+                : "Party Lounge";
     }
-
-
-    state.mode =
-        "party";
-
-
-    modePartyButton?.classList.add(
-        "active"
-    );
-
-
-    modeAiButton?.classList.remove(
-        "active"
-    );
-
-
-    aiControls?.classList.add(
-        "hidden"
-    );
-
-
-    partyControls?.classList.remove(
-        "hidden"
-    );
-
-
-    if (modeBadge) {
-
-        modeBadge.textContent =
-            "Party";
-    }
-
-
-    if (connectionBadge) {
-
-        connectionBadge.textContent =
-            "Онлайн";
-
-        connectionBadge.className =
-            "status-chip connection-party";
-    }
-
-
-    state.gameStarted =
-        false;
-
-
-    state.engine =
-        new ChessEngine();
-
-
-    state.selected =
-        null;
-
-
-    state.legalMoves =
-        [];
-
-
-    stopLocalClock();
-
-
-    updateGameUI();
 }
 
 
 /* =========================================================
-   PARTY STORAGE
+   URL
 ========================================================= */
 
+function updatePartyUrl(code = null) {
+    const url = new URL(window.location.href);
 
-function partyStorageKey(
-    code
-) {
+    if (code) {
+        url.searchParams.set("party", code);
+    } else {
+        url.searchParams.delete("party");
+    }
 
-    return `chessParty:${String(code).toUpperCase()}`;
+    window.history.replaceState(
+        {},
+        "",
+        url
+    );
 }
 
 
-function savePartyClientId(
-    code,
-    clientId
-) {
+/* =========================================================
+   BOARD
+========================================================= */
+
+function renderBoard() {
+    if (!elements.board) {
+        return;
+    }
+
+    elements.board.innerHTML = "";
+
+    const selectedMoves =
+        getLegalMovesForSelected();
+
+    const moveTargets = new Map(
+        selectedMoves.map(move => [
+            move.to,
+            move,
+        ])
+    );
+
+    const orientation =
+        appState.orientation;
+
+    const xOrder =
+        orientation === "w"
+            ? [0, 1, 2, 3, 4, 5, 6, 7]
+            : [7, 6, 5, 4, 3, 2, 1, 0];
+
+    const yOrder =
+        orientation === "w"
+            ? [7, 6, 5, 4, 3, 2, 1, 0]
+            : [0, 1, 2, 3, 4, 5, 6, 7];
+
+    const status = currentStatus();
+
+    const checkColor =
+        status.check
+            ? appState.engine.state.turn
+            : null;
+
+    const lastMove =
+        appState.engine.state.lastMove;
+
+    for (const y of yOrder) {
+        for (const x of xOrder) {
+            const squareName =
+                ChessRules.toSquare(x, y);
+
+            const piece =
+                appState.engine.state.board[y][x];
+
+            const square =
+                document.createElement("button");
+
+            square.type = "button";
+            square.className =
+                `square ${
+                    (x + y) % 2 === 0
+                        ? "dark"
+                        : "light"
+                }`;
+
+            square.dataset.square =
+                squareName;
+
+            if (
+                appState.selectedSquare ===
+                squareName
+            ) {
+                square.classList.add(
+                    "selected"
+                );
+            }
+
+            const move =
+                moveTargets.get(squareName);
+
+            if (move) {
+                square.classList.add(
+                    move.capture
+                        ? "capture-target"
+                        : "legal-target"
+                );
+            }
+
+            if (
+                lastMove &&
+                (
+                    lastMove.from === squareName ||
+                    lastMove.to === squareName
+                )
+            ) {
+                square.classList.add(
+                    "last-move"
+                );
+            }
+
+            if (
+                piece &&
+                piece.type === "K" &&
+                piece.color === checkColor
+            ) {
+                square.classList.add(
+                    "check-square"
+                );
+            }
+
+            if (piece) {
+                const pieceNode =
+                    document.createElement("span");
+
+                pieceNode.className =
+                    `piece ${
+                        piece.color === "w"
+                            ? "white"
+                            : "black"
+                    }`;
+
+                pieceNode.textContent =
+                    PIECE_GLYPHS[
+                        piece.color
+                    ][piece.type];
+
+                square.appendChild(pieceNode);
+            }
+
+            square.addEventListener(
+                "click",
+                () => handleSquareClick(squareName)
+            );
+
+            elements.board.appendChild(square);
+        }
+    }
+}
+
+
+/* =========================================================
+   GAME STATUS
+========================================================= */
+
+function formatStatus() {
+    if (appState.gameOver) {
+        return getGameOverMessage();
+    }
+
+    const status = currentStatus();
+
+    if (status.phase === "checkmate") {
+        return "Checkmate";
+    }
+
+    if (status.phase === "draw") {
+        return "Draw";
+    }
+
+    if (status.check) {
+        return appState.engine.state.turn === "w"
+            ? "White is in check"
+            : "Black is in check";
+    }
+
+    return appState.engine.state.turn === "w"
+        ? "White to move"
+        : "Black to move";
+}
+
+
+function getGameOverMessage() {
+    const snapshot =
+        appState.partySnapshot;
+
+    if (!snapshot) {
+        return (
+            appState.gameOverMessage ||
+            "Game over."
+        );
+    }
+
+    const reason =
+        snapshot.gameOverReason;
+
+    const winner =
+        snapshot.winner;
+
+    switch (reason) {
+        case "timeout":
+            return winner === "w"
+                ? "White wins on time."
+                : "Black wins on time.";
+
+        case "checkmate":
+            return winner === "w"
+                ? "White wins by checkmate."
+                : "Black wins by checkmate.";
+
+        case "draw":
+            return "Draw.";
+
+        default:
+            return (
+                appState.gameOverMessage ||
+                "Game over."
+            );
+    }
+}
+
+
+/* =========================================================
+   ROSTER
+========================================================= */
+
+function renderRoster() {
+    if (appState.mode === "ai") {
+        const human =
+            appState.playerName || "You";
+
+        const whiteName =
+            appState.playerColor === "w"
+                ? human
+                : `Computer (${appState.aiLevel})`;
+
+        const blackName =
+            appState.playerColor === "b"
+                ? human
+                : `Computer (${appState.aiLevel})`;
+
+        if (elements.whitePlayerLabel) {
+            elements.whitePlayerLabel.textContent =
+                whiteName;
+        }
+
+        if (elements.blackPlayerLabel) {
+            elements.blackPlayerLabel.textContent =
+                blackName;
+        }
+
+        if (elements.rosterWhite) {
+            elements.rosterWhite.textContent =
+                whiteName;
+        }
+
+        if (elements.rosterBlack) {
+            elements.rosterBlack.textContent =
+                blackName;
+        }
+
+        if (elements.spectatorList) {
+            elements.spectatorList.innerHTML =
+                "<li>None in AI mode</li>";
+        }
+
+        if (elements.spectatorCount) {
+            elements.spectatorCount.textContent =
+                "0 / 20";
+        }
+
+        return;
+    }
+
+    const white =
+        appState.partySnapshot?.players?.white;
+
+    const black =
+        appState.partySnapshot?.players?.black;
+
+    const whiteName =
+        white
+            ? `${white.name}${
+                white.connected
+                    ? ""
+                    : " · offline"
+            }`
+            : "Open seat";
+
+    const blackName =
+        black
+            ? `${black.name}${
+                black.connected
+                    ? ""
+                    : " · offline"
+            }`
+            : "Open seat";
+
+    elements.whitePlayerLabel &&
+        (elements.whitePlayerLabel.textContent =
+            whiteName);
+
+    elements.blackPlayerLabel &&
+        (elements.blackPlayerLabel.textContent =
+            blackName);
+
+    elements.rosterWhite &&
+        (elements.rosterWhite.textContent =
+            whiteName);
+
+    elements.rosterBlack &&
+        (elements.rosterBlack.textContent =
+            blackName);
+
+    const spectators =
+        appState.partySnapshot?.spectators || [];
+
+    if (elements.spectatorCount) {
+        elements.spectatorCount.textContent =
+            `${spectators.length} / 20`;
+    }
+
+    if (!elements.spectatorList) {
+        return;
+    }
+
+    if (!spectators.length) {
+        elements.spectatorList.innerHTML =
+            "<li>None yet</li>";
+
+        return;
+    }
+
+    elements.spectatorList.innerHTML =
+        spectators
+            .map(
+                spectator =>
+                    `<li>${escapeHtml(
+                        spectator.name
+                    )}${
+                        spectator.connected
+                            ? ""
+                            : " · offline"
+                    }</li>`
+            )
+            .join("");
+}
+
+
+/* =========================================================
+   PARTY SUMMARY
+========================================================= */
+
+function renderPartySummary() {
+    if (!elements.partySummary) {
+        return;
+    }
+
+    if (!appState.party) {
+        elements.partySummary.textContent =
+            "Create a room to become White. The next player joins as Black. Up to 20 spectators can watch live.";
+
+        return;
+    }
+
+    const role =
+        appState.party.role;
+
+    const roleText =
+        role === "white"
+            ? "playing as White"
+            : role === "black"
+                ? "playing as Black"
+                : "watching as a spectator";
+
+    const timeLabel =
+        appState.partySnapshot
+            ?.timeControl?.label ||
+        "Без часов";
+
+    elements.partySummary.textContent =
+        `Party ${appState.party.code} · ${roleText}. ${timeLabel}.`;
+}
+
+
+/* =========================================================
+   CLOCKS
+========================================================= */
+
+function renderClocks() {
+    let clocks;
+    let timeControl;
+
+    if (appState.mode === "party") {
+        clocks =
+            appState.partySnapshot?.clocks;
+
+        timeControl =
+            appState.partySnapshot?.timeControl;
+    } else {
+        clocks =
+            appState.localClocks;
+
+        timeControl = {
+            initial:
+                getTimeControlSeconds(
+                    appState.aiTimeControl
+                ),
+
+            label:
+                elements.aiTimeControl
+                    ?.selectedOptions?.[0]
+                    ?.textContent ||
+                "Без часов",
+        };
+    }
+
+    const enabled =
+        Boolean(
+            timeControl?.initial > 0
+        );
+
+    if (!enabled) {
+        if (elements.whiteClock) {
+            elements.whiteClock.textContent = "∞";
+            elements.whiteClock.classList.remove(
+                "active",
+                "low"
+            );
+        }
+
+        if (elements.blackClock) {
+            elements.blackClock.textContent = "∞";
+            elements.blackClock.classList.remove(
+                "active",
+                "low"
+            );
+        }
+
+        return;
+    }
+
+    const white =
+        clocks?.white ?? 0;
+
+    const black =
+        clocks?.black ?? 0;
+
+    if (elements.whiteClock) {
+        elements.whiteClock.textContent =
+            formatClock(white);
+
+        elements.whiteClock.classList.toggle(
+            "active",
+            clocks?.turn === "w" &&
+            clocks?.running
+        );
+
+        elements.whiteClock.classList.toggle(
+            "low",
+            white <= 10
+        );
+    }
+
+    if (elements.blackClock) {
+        elements.blackClock.textContent =
+            formatClock(black);
+
+        elements.blackClock.classList.toggle(
+            "active",
+            clocks?.turn === "b" &&
+            clocks?.running
+        );
+
+        elements.blackClock.classList.toggle(
+            "low",
+            black <= 10
+        );
+    }
+}
+
+
+/* =========================================================
+   CONNECTION BADGE
+========================================================= */
+
+function renderConnectionBadge() {
+    if (!elements.connectionBadge) {
+        return;
+    }
+
+    if (appState.mode === "ai") {
+        elements.connectionBadge.textContent =
+            appState.isAiThinking
+                ? "Computer thinking"
+                : `AI: ${appState.aiLevel}`;
+
+        return;
+    }
+
+    if (!appState.party) {
+        elements.connectionBadge.textContent =
+            "Party idle";
+
+        return;
+    }
+
+    const role =
+        appState.party.role === "white"
+            ? "White"
+            : appState.party.role === "black"
+                ? "Black"
+                : "Spectator";
+
+    elements.connectionBadge.textContent =
+        `Party ${appState.party.code} · ${role}`;
+}
+
+
+/* =========================================================
+   RENDER
+========================================================= */
+
+function render() {
+    renderBoard();
+    renderRoster();
+    renderPartySummary();
+    renderClocks();
+    renderConnectionBadge();
+
+    const status = formatStatus();
+
+    if (elements.turnBadge) {
+        elements.turnBadge.textContent =
+            status;
+    }
+
+    if (elements.statusMessage) {
+        elements.statusMessage.textContent =
+            status;
+    }
+
+    elements.copyInviteButton?.classList.toggle(
+        "hidden",
+        !appState.party
+    );
+
+    elements.leavePartyButton?.classList.toggle(
+        "hidden",
+        !appState.party
+    );
+}
+
+
+/* =========================================================
+   PROMOTION
+========================================================= */
+
+function openPromotionDialog(moves) {
+    appState.pendingPromotionMoves =
+        moves;
+
+    if (!elements.promotionOptions) {
+        return;
+    }
+
+    elements.promotionOptions.innerHTML = "";
+
+    for (const move of moves) {
+        const button =
+            document.createElement("button");
+
+        button.type = "button";
+        button.className =
+            "promotion-button";
+
+        const promotion =
+            String(move.promotion || "Q")
+                .toUpperCase();
+
+        button.textContent =
+            PIECE_GLYPHS[
+                move.color
+            ][promotion];
+
+        button.addEventListener(
+            "click",
+            () => {
+                closePromotionDialog();
+                submitMove(move);
+            }
+        );
+
+        elements.promotionOptions.appendChild(
+            button
+        );
+    }
+
+    elements.promotionDialog?.classList.remove(
+        "hidden"
+    );
+}
+
+
+function closePromotionDialog() {
+    appState.pendingPromotionMoves = null;
+
+    elements.promotionDialog?.classList.add(
+        "hidden"
+    );
+}
+
+
+/* =========================================================
+   MOVE
+========================================================= */
+
+async function submitMove(move) {
+    if (appState.gameOver) {
+        return;
+    }
+
+    clearSelection();
 
     if (
-        !code ||
-        !clientId
+        appState.mode === "party" &&
+        appState.party
     ) {
+        const response =
+            await postJson(
+                "/api/party/move",
+                {
+                    partyCode:
+                        appState.party.code,
+
+                    clientId:
+                        appState.party.clientId,
+
+                    from: move.from,
+                    to: move.to,
+
+                    promotion:
+                        move.promotion || null,
+                }
+            );
+
+        if (!response.ok) {
+            if (response.party) {
+                hydratePartyState(
+                    response.party,
+                    false
+                );
+            }
+
+            showToast(
+                response.error ||
+                    "Move rejected.",
+                "error"
+            );
+
+            return;
+        }
+
+        hydratePartyState(
+            response.party,
+            false
+        );
 
         return;
     }
 
+    const result =
+        appState.engine.makeMove({
+            from: move.from,
+            to: move.to,
+            promotion:
+                move.promotion || null,
+        });
 
-    try {
-
-        localStorage.setItem(
-            partyStorageKey(code),
-            clientId
+    if (!result.ok) {
+        showToast(
+            result.error ||
+                "Illegal move.",
+            "error"
         );
 
-    } catch {
-        // localStorage unavailable
-    }
-}
-
-
-function loadPartyClientId(
-    code
-) {
-
-    if (!code) {
-        return null;
-    }
-
-
-    try {
-
-        return localStorage.getItem(
-            partyStorageKey(code)
-        );
-
-    } catch {
-
-        return null;
-    }
-}
-
-
-function removePartyClientId(
-    code
-) {
-
-    if (!code) {
         return;
     }
 
+    updateAiClockAfterMove();
 
-    try {
+    render();
 
-        localStorage.removeItem(
-            partyStorageKey(code)
+    scheduleAiTurn();
+}
+
+
+/* =========================================================
+   BOARD INPUT
+========================================================= */
+
+function handleSquareClick(square) {
+    if (
+        appState.pendingPromotionMoves ||
+        appState.gameOver
+    ) {
+        return;
+    }
+
+    if (!isHumanTurn()) {
+        clearSelection();
+        renderBoard();
+        return;
+    }
+
+    const piece =
+        appState.engine.getPiece(square);
+
+    if (appState.selectedSquare) {
+        const matchingMoves =
+            getLegalMovesForSelected()
+                .filter(
+                    move =>
+                        move.to === square
+                );
+
+        if (matchingMoves.length === 1) {
+            submitMove(matchingMoves[0]);
+            return;
+        }
+
+        if (matchingMoves.length > 1) {
+            openPromotionDialog(
+                matchingMoves
+            );
+            return;
+        }
+    }
+
+    const humanColor =
+        currentHumanColor();
+
+    if (
+        piece &&
+        piece.color === humanColor &&
+        piece.color ===
+            appState.engine.state.turn
+    ) {
+        appState.selectedSquare =
+            appState.selectedSquare === square
+                ? null
+                : square;
+
+        renderBoard();
+        return;
+    }
+
+    clearSelection();
+    renderBoard();
+}
+
+
+/* =========================================================
+   AI
+========================================================= */
+
+function scheduleAiTurn() {
+    stopAiMoveTimer();
+
+    if (appState.mode !== "ai") {
+        return;
+    }
+
+    const status = currentStatus();
+
+    if (
+        !status ||
+        status.phase !== "playing" ||
+        appState.gameOver
+    ) {
+        appState.isAiThinking = false;
+        render();
+        return;
+    }
+
+    if (
+        appState.engine.state.turn ===
+        appState.playerColor
+    ) {
+        appState.isAiThinking = false;
+        render();
+        return;
+    }
+
+    appState.isAiThinking = true;
+    render();
+
+    appState.aiMoveTimer =
+        window.setTimeout(
+            () => {
+                appState.aiMoveTimer = null;
+
+                if (
+                    appState.mode !== "ai" ||
+                    appState.gameOver
+                ) {
+                    appState.isAiThinking = false;
+                    render();
+                    return;
+                }
+
+                const move =
+                    chooseComputerMove(
+                        appState.engine,
+                        appState.aiLevel
+                    );
+
+                appState.isAiThinking = false;
+
+                if (!move) {
+                    render();
+                    return;
+                }
+
+                submitMove(move);
+            },
+            400
+        );
+}
+
+
+function stopAiMoveTimer() {
+    if (appState.aiMoveTimer) {
+        window.clearTimeout(
+            appState.aiMoveTimer
         );
 
-    } catch {
-        // ignore
+        appState.aiMoveTimer = null;
+    }
+
+    appState.isAiThinking = false;
+}
+
+
+/* =========================================================
+   AI CLOCK
+========================================================= */
+
+function startAiClock() {
+    stopAiClock();
+
+    const seconds =
+        getTimeControlSeconds(
+            appState.aiTimeControl
+        );
+
+    appState.localClocks = {
+        white: seconds,
+        black: seconds,
+
+        running: seconds > 0,
+
+        turn:
+            appState.engine.state.turn,
+
+        lastTick:
+            Date.now(),
+    };
+
+    render();
+
+    if (!seconds) {
+        return;
+    }
+
+    appState.aiClockTimer =
+        window.setInterval(
+            () => {
+                updateAiClock();
+                renderClocks();
+            },
+            250
+        );
+}
+
+
+function stopAiClock() {
+    if (appState.aiClockTimer) {
+        window.clearInterval(
+            appState.aiClockTimer
+        );
+
+        appState.aiClockTimer = null;
+    }
+}
+
+
+function updateAiClock() {
+    if (
+        appState.mode !== "ai" ||
+        appState.gameOver
+    ) {
+        return;
+    }
+
+    const clocks =
+        appState.localClocks;
+
+    if (!clocks.running) {
+        return;
+    }
+
+    const now = Date.now();
+
+    const elapsed =
+        Math.max(
+            0,
+            (now - clocks.lastTick) / 1000
+        );
+
+    if (!elapsed) {
+        return;
+    }
+
+    clocks.lastTick = now;
+
+    const color =
+        clocks.turn;
+
+    const key =
+        color === "w"
+            ? "white"
+            : "black";
+
+    clocks[key] =
+        Math.max(
+            0,
+            clocks[key] - elapsed
+        );
+
+    if (clocks[key] <= 0) {
+        clocks.running = false;
+
+        appState.gameOver = true;
+
+        appState.gameOverMessage =
+            color === "w"
+                ? "Black wins on time."
+                : "White wins on time.";
+
+        stopAiClock();
+
+        showToast(
+            appState.gameOverMessage,
+            "error"
+        );
+
+        render();
+    }
+}
+
+
+function updateAiClockAfterMove() {
+    const clocks =
+        appState.localClocks;
+
+    if (!clocks.running) {
+        return;
+    }
+
+    updateAiClock();
+
+    if (appState.gameOver) {
+        return;
+    }
+
+    const previousTurn =
+        clocks.turn;
+
+    const key =
+        previousTurn === "w"
+            ? "white"
+            : "black";
+
+    clocks[key] +=
+        getIncrementForTimeControl(
+            appState.aiTimeControl
+        );
+
+    clocks.turn =
+        appState.engine.state.turn;
+
+    clocks.lastTick =
+        Date.now();
+}
+
+
+/* =========================================================
+   LOCAL GAME
+========================================================= */
+
+function resetLocalGame() {
+    stopAiMoveTimer();
+    stopAiClock();
+
+    closePromotionDialog();
+
+    appState.engine =
+        new ChessEngine();
+
+    appState.partySnapshot = null;
+
+    appState.orientation =
+        appState.playerColor;
+
+    appState.gameOver = false;
+    appState.gameOverMessage = null;
+
+    startAiClock();
+    scheduleAiTurn();
+}
+
+
+/* =========================================================
+   API
+========================================================= */
+
+async function postJson(url, body) {
+    try {
+        const response =
+            await fetch(
+                url,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json",
+                    },
+
+                    body:
+                        JSON.stringify(body),
+                }
+            );
+
+        const contentType =
+            response.headers.get(
+                "content-type"
+            ) || "";
+
+        if (
+            !contentType.includes(
+                "application/json"
+            )
+        ) {
+            return {
+                ok: false,
+
+                error:
+                    `Server returned ${response.status} instead of JSON.`,
+            };
+        }
+
+        return await response.json();
+    } catch (error) {
+        return {
+            ok: false,
+
+            error:
+                error instanceof Error
+                    ? error.message
+                    : "Network error.",
+        };
+    }
+}
+
+
+/* =========================================================
+   PARTY STATE
+========================================================= */
+
+function hydratePartyState(
+    partyPayload,
+    announce = true
+) {
+    if (!partyPayload) {
+        return;
+    }
+
+    const previousCode =
+        appState.party?.code;
+
+    const previousClientId =
+        appState.party?.clientId;
+
+    appState.party = {
+        code:
+            partyPayload.code,
+
+        clientId:
+            partyPayload.you?.id ||
+            previousClientId ||
+            null,
+
+        role:
+            partyPayload.you?.role ||
+            appState.party?.role ||
+            "spectator",
+    };
+
+    appState.partySnapshot =
+        partyPayload;
+
+    appState.engine =
+        new ChessEngine(
+            partyPayload.game
+        );
+
+    appState.gameOver =
+        Boolean(
+            partyPayload.gameOverReason
+        );
+
+    appState.gameOverMessage =
+        appState.gameOver
+            ? getGameOverMessage()
+            : null;
+
+    if (
+        appState.party.role === "white"
+    ) {
+        appState.orientation = "w";
+    } else if (
+        appState.party.role === "black"
+    ) {
+        appState.orientation = "b";
+    }
+
+    setMode("party");
+
+    updatePartyUrl(
+        partyPayload.code
+    );
+
+    render();
+
+    if (
+        announce &&
+        partyPayload.gameOverReason
+    ) {
+        showToast(
+            getGameOverMessage(),
+            "success"
+        );
+    }
+
+    if (
+        previousCode &&
+        previousCode !== partyPayload.code
+    ) {
+        console.info(
+            "Party changed:",
+            previousCode,
+            "→",
+            partyPayload.code
+        );
+    }
+}
+
+
+/* =========================================================
+   PARTY SSE
+========================================================= */
+
+function connectPartyStream() {
+    if (!appState.party) {
+        return;
+    }
+
+    closePartyStream();
+
+    const {
+        code,
+        clientId,
+    } = appState.party;
+
+    const url =
+        `/api/party/events?partyCode=${
+            encodeURIComponent(code)
+        }&clientId=${
+            encodeURIComponent(clientId)
+        }`;
+
+    const stream =
+        new EventSource(url);
+
+    stream.addEventListener(
+        "party",
+        event => {
+            try {
+                const party =
+                    JSON.parse(
+                        event.data
+                    );
+
+                hydratePartyState(
+                    party,
+                    false
+                );
+            } catch (error) {
+                console.error(
+                    "Party SSE error:",
+                    error
+                );
+            }
+        }
+    );
+
+    stream.onerror = () => {
+        if (
+            appState.mode === "party" &&
+            elements.connectionBadge
+        ) {
+            elements.connectionBadge.textContent =
+                `Party ${code} · reconnecting`;
+        }
+    };
+
+    appState.partyStream = stream;
+}
+
+
+function closePartyStream() {
+    if (appState.partyStream) {
+        appState.partyStream.close();
+        appState.partyStream = null;
     }
 }
 
@@ -2117,121 +1601,52 @@ function removePartyClientId(
    CREATE PARTY
 ========================================================= */
 
-
 async function createParty() {
+    if (appState.party) {
+        await leaveParty(true);
+    }
 
-    const name =
-        getPlayerName();
+    const timeControl =
+        elements.partyTimeControl?.value ||
+        "10+0";
 
+    const response =
+        await postJson(
+            "/api/party/create",
+            {
+                name:
+                    appState.playerName,
 
-    try {
-
-        const response =
-            await fetch(
-                "/api/party/create",
-                {
-
-                    method:
-                        "POST",
-
-                    headers: {
-
-                        "Content-Type":
-                            "application/json"
-                    },
-
-                    body:
-                        JSON.stringify({
-
-                            name,
-
-                            timeControl:
-                                $("partyClockSelect")
-                                    ?.value ||
-                                "10+0"
-                        })
-                }
-            );
-
-
-        const data =
-            await response.json();
-
-
-        if (!data.ok) {
-
-            throw new Error(
-                data.error
-            );
-        }
-
-
-        state.party =
-            data.party;
-
-
-        state.partyClientId =
-            data.party.you?.id ||
-            null;
-
-
-        savePartyClientId(
-            data.party.code,
-            state.partyClientId
+                timeControl,
+            }
         );
 
-
-        applyPartyState(
-            data.party
-        );
-
-
-        $("partyCodeInput").value =
-            data.party.code;
-
-
-        $("leavePartyButton")
-            ?.classList
-            .remove(
-                "hidden"
-            );
-
-
-        $("copyInviteButton")
-            ?.classList
-            .remove(
-                "hidden"
-            );
-
-
-        $("newGameToolbarButton")
-            ?.classList
-            .remove(
-                "hidden"
-            );
-
-
-        $("partySummary")
-            .textContent =
-            `Комната ${data.party.code}. Вы играете белыми.`;
-
-
-        connectPartyEvents();
-
-
+    if (!response.ok) {
         showToast(
-            `Комната ${data.party.code} создана.`,
-            "success"
-        );
-
-    } catch (error) {
-
-        showToast(
-            error.message ||
-            "Не удалось создать комнату.",
+            response.error ||
+                "Unable to create party.",
             "error"
         );
+
+        return;
     }
+
+    setStoredPartyId(
+        response.party.code,
+        response.clientId
+    );
+
+    hydratePartyState(
+        response.party,
+        false
+    );
+
+    connectPartyStream();
+
+    showToast(
+        `Party ${response.party.code} created.`,
+        "success"
+    );
 }
 
 
@@ -2239,1172 +1654,216 @@ async function createParty() {
    JOIN PARTY
 ========================================================= */
 
+async function joinParty(code) {
+    const normalizedCode =
+        String(code || "")
+            .trim()
+            .toUpperCase();
 
-async function joinParty() {
-
-    const code =
-        $("partyCodeInput")
-            ?.value
-            ?.trim()
-            ?.toUpperCase();
-
-
-    if (
-        !/^[A-Z0-9]{6}$/.test(
-            code
-        )
-    ) {
-
+    if (!normalizedCode) {
         showToast(
-            "Введите 6-значный код комнаты.",
+            "Enter a party code first.",
             "error"
         );
 
         return;
     }
 
-
-    /*
-     * Try reconnecting with the old ID
-     * belonging to this room.
-     */
-
-    const storedClientId =
-        loadPartyClientId(
-            code
-        );
-
-
-    try {
-
-        const response =
-            await fetch(
-                "/api/party/join",
-                {
-
-                    method:
-                        "POST",
-
-                    headers: {
-
-                        "Content-Type":
-                            "application/json"
-                    },
-
-                    body:
-                        JSON.stringify({
-
-                            partyCode:
-                                code,
-
-                            name:
-                                getPlayerName(),
-
-                            clientId:
-                                storedClientId
-                        })
-                }
-            );
-
-
-        const data =
-            await response.json();
-
-
-        if (!data.ok) {
-
-            throw new Error(
-                data.error
-            );
-        }
-
-
-        state.party =
-            data.party;
-
-
-        state.partyClientId =
-            data.party.you?.id ||
-            null;
-
-
-        savePartyClientId(
-            code,
-            state.partyClientId
-        );
-
-
-        applyPartyState(
-            data.party
-        );
-
-
-        $("leavePartyButton")
-            ?.classList
-            .remove(
-                "hidden"
-            );
-
-
-        $("copyInviteButton")
-            ?.classList
-            .remove(
-                "hidden"
-            );
-
-
-        $("newGameToolbarButton")
-            ?.classList
-            .remove(
-                "hidden"
-            );
-
-
-        connectPartyEvents();
-
-
+    if (
+        appState.party?.code ===
+        normalizedCode
+    ) {
         showToast(
-            `Вы вошли в комнату ${code}.`,
-            "success"
+            `You are already in party ${normalizedCode}.`
         );
 
-    } catch (error) {
-
-        showToast(
-            error.message ||
-            "Не удалось войти в комнату.",
-            "error"
-        );
+        return;
     }
-}
 
+    if (appState.party) {
+        await leaveParty(true);
+    }
 
-/* =========================================================
-   SNAPSHOT
-========================================================= */
+    const storedIds =
+        getStoredPartyIds();
 
+    const response =
+        await postJson(
+            "/api/party/join",
+            {
+                name:
+                    appState.playerName,
 
-function createEngineFromSnapshot(
-    snapshot
-) {
+                partyCode:
+                    normalizedCode,
 
-    const engine =
-        new ChessEngine(
-            snapshot.fen
-        );
-
-
-    engine.state.lastMove =
-        snapshot.lastMove
-            ? {
-                ...snapshot.lastMove
+                clientId:
+                    storedIds[normalizedCode] ||
+                    null,
             }
-            : null;
+        );
 
+    if (!response.ok) {
+        showToast(
+            response.error ||
+                "Unable to join party.",
+            "error"
+        );
 
-    return engine;
+        return;
+    }
+
+    setStoredPartyId(
+        response.party.code,
+        response.clientId
+    );
+
+    hydratePartyState(
+        response.party,
+        false
+    );
+
+    connectPartyStream();
+
+    showToast(
+        `Joined party ${response.party.code}.`,
+        "success"
+    );
 }
 
 
 /* =========================================================
-   PARTY STATE
+   LEAVE PARTY
 ========================================================= */
 
-
-function applyPartyState(
-    party
+async function leaveParty(
+    silent = false
 ) {
-
-    state.party =
-        party;
-
-
-    state.engine =
-        createEngineFromSnapshot(
-            party.game
-        );
-
-
-    state.clocks = {
-
-        white:
-            Number(
-                party.clocks?.white || 0
-            ),
-
-        black:
-            Number(
-                party.clocks?.black || 0
-            ),
-
-        running:
-            Boolean(
-                party.clocks?.running
-            ),
-
-        turn:
-            party.clocks?.turn ||
-            party.game?.turn ||
-            "w"
-    };
-
-
-    state.partyClockSyncedAt =
-        Date.now();
-
-
-    state.selected =
-        null;
-
-
-    state.legalMoves =
-        [];
-
-
-    state.gameStarted =
-        true;
-
-
-    updatePartyPlayers();
-
-    updateSpectators();
-
-    updatePartyConnection();
-
-
-    updateGameUI();
-}
-
-
-/* =========================================================
-   PARTY PLAYERS
-========================================================= */
-
-
-function updatePartyPlayers() {
-
-    const players =
-        state.party?.players ||
-        {};
-
-
-    whitePlayerLabel.textContent =
-        players.white?.name ||
-        "Ожидание игрока";
-
-
-    blackPlayerLabel.textContent =
-        players.black?.name ||
-        "Ожидание игрока";
-
-
-    if (
-        state.party?.you?.role ===
-        "white"
-    ) {
-
-        state.orientation =
-            "w";
-
-    } else if (
-        state.party?.you?.role ===
-        "black"
-    ) {
-
-        state.orientation =
-            "b";
-    }
-
-
-    const owner =
-        state.party?.ownerId;
-
-
-    const isOwner =
-        owner &&
-        owner ===
-            state.partyClientId;
-
-
-    const newGameButton =
-        $("newGameToolbarButton");
-
-
-    if (newGameButton) {
-
-        newGameButton.classList.toggle(
-            "hidden",
-            !isOwner
-        );
-    }
-
-
-    $("partySummary")
-        ?.textContent =
-        state.party?.code
-            ? `Комната ${state.party.code}`
-            : "Создайте комнату.";
-}
-
-
-/* =========================================================
-   SPECTATORS
-========================================================= */
-
-
-function updateSpectators() {
-
-    if (
-        !spectatorCount ||
-        !spectatorList
-    ) {
-
+    if (!appState.party) {
         return;
     }
 
+    const party =
+        appState.party;
 
-    const spectators =
-        state.party?.spectators ||
-        [];
+    closePartyStream();
 
-
-    spectatorCount.textContent =
-        `${spectators.length} / ${
-            state.party?.maxSpectators ||
-            20
-        }`;
-
-
-    spectatorList.innerHTML =
-        "";
-
-
-    if (
-        !spectators.length
-    ) {
-
-        const li =
-            document.createElement(
-                "li"
-            );
-
-
-        li.className =
-            "empty-state";
-
-
-        li.textContent =
-            "Пока никого нет";
-
-
-        spectatorList.appendChild(
-            li
-        );
-
-
-        return;
-    }
-
-
-    for (
-        const spectator
-        of spectators
-    ) {
-
-        const li =
-            document.createElement(
-                "li"
-            );
-
-
-        li.textContent =
-            spectator.name;
-
-
-        spectatorList.appendChild(
-            li
-        );
-    }
-}
-
-
-/* =========================================================
-   PARTY CONNECTION
-========================================================= */
-
-
-function updatePartyConnection() {
-
-    if (
-        !connectionBadge
-    ) {
-
-        return;
-    }
-
-
-    if (
-        state.partyEvents
-    ) {
-
-        connectionBadge.textContent =
-            "Онлайн";
-
-        connectionBadge.className =
-            "status-chip connection-party";
-    }
-}
-
-
-function closePartyEvents() {
-
-    clearTimeout(
-        state.partyReconnectTimer
-    );
-
-
-    if (
-        state.partyEvents
-    ) {
-
-        state.partyEvents.close();
-
-        state.partyEvents =
-            null;
-    }
-}
-
-
-function connectPartyEvents() {
-
-    clearTimeout(
-        state.partyReconnectTimer
-    );
-
-
-    closePartyEvents();
-
-
-    if (
-        !state.party?.code ||
-        !state.partyClientId
-    ) {
-
-        return;
-    }
-
-
-    const params =
-        new URLSearchParams({
-
+    await postJson(
+        "/api/party/leave",
+        {
             partyCode:
-                state.party.code,
+                party.code,
 
             clientId:
-                state.partyClientId
-        });
-
-
-    const source =
-        new EventSource(
-            `/api/party/events?${params}`
-        );
-
-
-    state.partyEvents =
-        source;
-
-
-    source.addEventListener(
-        "party",
-        event => {
-
-            try {
-
-                const party =
-                    JSON.parse(
-                        event.data
-                    );
-
-
-                applyPartyState(
-                    party
-                );
-
-            } catch {
-
-                showToast(
-                    "Ошибка обновления игры.",
-                    "error"
-                );
-            }
+                party.clientId,
         }
     );
 
-
-    source.onopen =
-        () => {
-
-            if (
-                state.partyEvents ===
-                source
-            ) {
-
-                updatePartyConnection();
-            }
-        };
-
-
-    source.onerror =
-        () => {
-
-            if (
-                state.partyEvents !==
-                source
-            ) {
-
-                return;
-            }
-
-
-            if (
-                connectionBadge
-            ) {
-
-                connectionBadge.textContent =
-                    "Переподключение...";
-
-                connectionBadge.className =
-                    "status-chip connection-solo";
-            }
-
-
-            source.close();
-
-
-            state.partyEvents =
-                null;
-
-
-            clearTimeout(
-                state.partyReconnectTimer
-            );
-
-
-            state.partyReconnectTimer =
-                setTimeout(
-                    () => {
-
-                        if (
-                            state.mode ===
-                                "party" &&
-                            state.party
-                        ) {
-
-                            connectPartyEvents();
-                        }
-
-                    },
-                    2500
-                );
-        };
-}
-
-
-/* =========================================================
-   PARTY CLOCK DISPLAY
-========================================================= */
-
-
-function getPartyDisplayedClock(
-    color
-) {
-
-    let seconds =
-        Number(
-            state.clocks[color] ||
-            0
-        );
-
-
-    if (
-        state.clocks.running &&
-        state.clocks.turn === color
-    ) {
-
-        const elapsed =
-            (
-                Date.now() -
-                state.partyClockSyncedAt
-            ) / 1000;
-
-
-        seconds =
-            Math.max(
-                0,
-                seconds -
-                elapsed
-            );
-    }
-
-
-    return seconds;
-}
-
-
-/* =========================================================
-   PARTY MOVE
-========================================================= */
-
-
-async function performPartyMove(
-    from,
-    to,
-    promotion
-) {
-
-    if (
-        !state.party ||
-        !state.partyClientId
-    ) {
-
-        return;
-    }
-
-
-    if (
-        !canUserMove()
-    ) {
-
-        return;
-    }
-
-
-    try {
-
-        const response =
-            await fetch(
-                "/api/party/move",
-                {
-
-                    method:
-                        "POST",
-
-                    headers: {
-
-                        "Content-Type":
-                            "application/json"
-                    },
-
-                    body:
-                        JSON.stringify({
-
-                            partyCode:
-                                state.party.code,
-
-                            clientId:
-                                state.partyClientId,
-
-                            from,
-
-                            to,
-
-                            promotion:
-                                promotion ||
-                                null
-                        })
-                }
-            );
-
-
-        const data =
-            await response.json();
-
-
-        if (
-            data.party
-        ) {
-
-            applyPartyState(
-                data.party
-            );
-        }
-
-
-        if (
-            !data.ok
-        ) {
-
-            showToast(
-                data.error ||
-                "Ход отклонён.",
-                "error"
-            );
-        }
-
-    } catch (error) {
-
-        showToast(
-            error.message ||
-            "Ошибка соединения.",
-            "error"
-        );
-    }
-}
-
-
-/* =========================================================
-   NEW PARTY GAME
-========================================================= */
-
-
-async function newPartyGame() {
-
-    if (
-        !state.party ||
-        !state.partyClientId
-    ) {
-
-        return;
-    }
-
-
-    if (
-        state.party.ownerId !==
-        state.partyClientId
-    ) {
-
-        showToast(
-            "Только владелец комнаты может начать новую игру.",
-            "error"
-        );
-
-        return;
-    }
-
-
-    try {
-
-        const response =
-            await fetch(
-                "/api/party/new-game",
-                {
-
-                    method:
-                        "POST",
-
-                    headers: {
-
-                        "Content-Type":
-                            "application/json"
-                    },
-
-                    body:
-                        JSON.stringify({
-
-                            partyCode:
-                                state.party.code,
-
-                            clientId:
-                                state.partyClientId
-                        })
-                }
-            );
-
-
-        const data =
-            await response.json();
-
-
-        if (!data.ok) {
-
-            throw new Error(
-                data.error
-            );
-        }
-
-
-        applyPartyState(
-            data.party
-        );
-
-
-        showToast(
-            "Новая партия началась.",
-            "success"
-        );
-
-    } catch (error) {
-
-        showToast(
-            error.message ||
-            "Не удалось начать новую игру.",
-            "error"
-        );
-    }
-}
-
-
-/* =========================================================
-   LEAVE
-========================================================= */
-
-
-async function leaveParty() {
-
-    const partyCode =
-        state.party?.code;
-
-
-    if (
-        state.party &&
-        state.partyClientId
-    ) {
-
-        try {
-
-            await fetch(
-                "/api/party/leave",
-                {
-
-                    method:
-                        "POST",
-
-                    headers: {
-
-                        "Content-Type":
-                            "application/json"
-                    },
-
-                    body:
-                        JSON.stringify({
-
-                            partyCode,
-
-                            clientId:
-                                state.partyClientId
-                        })
-                }
-            );
-
-        } catch {
-            // ignore
-        }
-    }
-
-
-    closePartyEvents();
-
-
-    removePartyClientId(
-        partyCode
+    removeStoredPartyId(
+        party.code
     );
 
+    appState.party = null;
+    appState.partySnapshot = null;
 
-    state.party =
-        null;
+    updatePartyUrl(null);
 
+    setMode("ai");
 
-    state.partyClientId =
-        null;
+    resetLocalGame();
 
-
-    state.gameStarted =
-        false;
-
-
-    state.engine =
-        new ChessEngine();
-
-
-    state.selected =
-        null;
-
-
-    state.legalMoves =
-        [];
-
-
-    $("leavePartyButton")
-        ?.classList
-        .add(
-            "hidden"
+    if (!silent) {
+        showToast(
+            "Left the party room."
         );
-
-
-    $("copyInviteButton")
-        ?.classList
-        .add(
-            "hidden"
-        );
-
-
-    $("newGameToolbarButton")
-        ?.classList
-        .add(
-            "hidden"
-        );
-
-
-    $("partySummary")
-        ?.textContent =
-        "Создайте комнату, чтобы играть белыми.";
-
-
-    updateGameUI();
+    }
 }
 
 
 /* =========================================================
-   COPY INVITE
+   INVITE
 ========================================================= */
 
-
-async function copyInvite() {
-
-    if (
-        !state.party?.code
-    ) {
-
+async function copyInviteLink() {
+    if (!appState.party) {
         return;
     }
 
-
-    const url =
-        `${location.origin}${location.pathname}?party=${state.party.code}`;
-
+    const inviteUrl =
+        `${window.location.origin}` +
+        `${window.location.pathname}` +
+        `?party=${encodeURIComponent(
+            appState.party.code
+        )}`;
 
     try {
-
         await navigator.clipboard.writeText(
-            url
+            inviteUrl
         );
 
-
         showToast(
-            "Ссылка скопирована.",
+            "Invite link copied.",
             "success"
         );
-
     } catch {
-
         showToast(
-            `Код комнаты: ${state.party.code}`
+            `Party code: ${appState.party.code}`
         );
     }
 }
 
 
 /* =========================================================
-   URL PARTY
+   STORAGE
 ========================================================= */
 
+function getStoredPartyIds() {
+    try {
+        return JSON.parse(
+            localStorage.getItem(
+                STORAGE_KEYS.partyIds
+            ) || "{}"
+        );
+    } catch {
+        return {};
+    }
+}
 
-function loadPartyFromUrl() {
 
-    const code =
-        new URLSearchParams(
-            location.search
-        ).get("party");
+function setStoredPartyId(
+    code,
+    clientId
+) {
+    if (!code || !clientId) {
+        return;
+    }
+
+    const ids =
+        getStoredPartyIds();
+
+    ids[code] = clientId;
+
+    localStorage.setItem(
+        STORAGE_KEYS.partyIds,
+        JSON.stringify(ids)
+    );
+}
 
 
+function removeStoredPartyId(code) {
     if (!code) {
         return;
     }
 
+    const ids =
+        getStoredPartyIds();
 
-    switchMode(
-        "party"
+    delete ids[code];
+
+    localStorage.setItem(
+        STORAGE_KEYS.partyIds,
+        JSON.stringify(ids)
     );
-
-
-    $("partyCodeInput")
-        ?.value =
-        code.toUpperCase();
-}
-
-
-/* =========================================================
-   FLIP
-========================================================= */
-
-
-function flipBoard() {
-
-    state.orientation =
-        state.orientation === "w"
-            ? "b"
-            : "w";
-
-
-    renderBoard();
-}
-
-
-/* =========================================================
-   CLOCK UPDATE
-========================================================= */
-
-
-function updateClocks() {
-
-    let white =
-        state.clocks.white;
-
-
-    let black =
-        state.clocks.black;
-
-
-    if (
-        state.mode === "party"
-    ) {
-
-        white =
-            getPartyDisplayedClock(
-                "white"
-            );
-
-
-        black =
-            getPartyDisplayedClock(
-                "black"
-            );
-    }
-
-
-    if (whiteClock) {
-
-        whiteClock.textContent =
-            formatTime(
-                white
-            );
-
-
-        whiteClock.classList.toggle(
-            "active",
-            state.clocks.running &&
-            state.clocks.turn === "w"
-        );
-
-
-        whiteClock.classList.toggle(
-            "low",
-            white > 0 &&
-            white < 30
-        );
-    }
-
-
-    if (blackClock) {
-
-        blackClock.textContent =
-            formatTime(
-                black
-            );
-
-
-        blackClock.classList.toggle(
-            "active",
-            state.clocks.running &&
-            state.clocks.turn === "b"
-        );
-
-
-        blackClock.classList.toggle(
-            "low",
-            black > 0 &&
-            black < 30
-        );
-    }
-}
-
-
-function formatTime(
-    seconds
-) {
-
-    if (
-        !seconds
-    ) {
-
-        return "—";
-    }
-
-
-    const value =
-        Math.max(
-            0,
-            Math.ceil(
-                seconds
-            )
-        );
-
-
-    const minutes =
-        Math.floor(
-            value / 60
-        );
-
-
-    const remaining =
-        value % 60;
-
-
-    return (
-        String(minutes)
-            .padStart(
-                2,
-                "0"
-            ) +
-        ":" +
-        String(remaining)
-            .padStart(
-                2,
-                "0"
-            )
-    );
-}
-
-
-/* =========================================================
-   CLOCK UI TIMER
-========================================================= */
-
-
-function startClockTimer() {
-
-    clearInterval(
-        state.clockTimer
-    );
-
-
-    state.clockTimer =
-        setInterval(
-            () => {
-
-                if (
-                    state.mode ===
-                    "ai"
-                ) {
-
-                    updateLocalClock();
-
-                } else {
-
-                    /*
-                     * Party clock is only
-                     * visual interpolation.
-                     *
-                     * Server remains authoritative.
-                     */
-
-                    updateClocks();
-                }
-
-            },
-            250
-        );
 }
 
 
@@ -3412,149 +1871,246 @@ function startClockTimer() {
    EVENTS
 ========================================================= */
 
-
 function bindEvents() {
+    elements.playerNameInput?.addEventListener(
+        "input",
+        event => {
+            appState.playerName =
+                event.target.value.trim() ||
+                "Guest";
 
-    modeAiButton?.addEventListener(
-        "click",
-        () =>
-            switchMode("ai")
+            localStorage.setItem(
+                STORAGE_KEYS.name,
+                appState.playerName
+            );
+
+            renderRoster();
+        }
     );
 
 
-    modePartyButton?.addEventListener(
-        "click",
-        () =>
-            switchMode("party")
+    elements.aiLevelSelect?.addEventListener(
+        "change",
+        event => {
+            appState.aiLevel =
+                event.target.value;
+
+            render();
+        }
     );
 
 
-    $("startAiButton")
-        ?.addEventListener(
-            "click",
-            startNewAiGame
-        );
+    elements.playerColorSelect?.addEventListener(
+        "change",
+        event => {
+            appState.playerColor =
+                event.target.value;
 
-
-    $("newGameToolbarButton")
-        ?.addEventListener(
-            "click",
-            () => {
-
-                if (
-                    state.mode ===
-                    "party"
-                ) {
-
-                    newPartyGame();
-
-                } else {
-
-                    startNewAiGame();
-                }
+            if (appState.mode === "ai") {
+                resetLocalGame();
             }
-        );
+        }
+    );
 
 
-    $("flipBoardButton")
-        ?.addEventListener(
-            "click",
-            flipBoard
-        );
+    elements.aiTimeControl?.addEventListener(
+        "change",
+        event => {
+            appState.aiTimeControl =
+                event.target.value;
 
-
-    $("createPartyButton")
-        ?.addEventListener(
-            "click",
-            createParty
-        );
-
-
-    $("joinPartyButton")
-        ?.addEventListener(
-            "click",
-            joinParty
-        );
-
-
-    $("leavePartyButton")
-        ?.addEventListener(
-            "click",
-            leaveParty
-        );
-
-
-    $("copyInviteButton")
-        ?.addEventListener(
-            "click",
-            copyInvite
-        );
-
-
-    promotionDialog
-        ?.addEventListener(
-            "click",
-            event => {
-
-                if (
-                    event.target ===
-                    promotionDialog
-                ) {
-
-                    promotionDialog
-                        .classList
-                        .add(
-                            "hidden"
-                        );
-
-                    state.promotionResolver =
-                        null;
-                }
+            if (appState.mode === "ai") {
+                resetLocalGame();
             }
-        );
+        }
+    );
+
+
+    elements.modeAiButton?.addEventListener(
+        "click",
+        async () => {
+            if (appState.party) {
+                await leaveParty(true);
+                return;
+            }
+
+            setMode("ai");
+            resetLocalGame();
+        }
+    );
+
+
+    elements.modePartyButton?.addEventListener(
+        "click",
+        () => {
+            setMode("party");
+            render();
+        }
+    );
+
+
+    elements.startAiButton?.addEventListener(
+        "click",
+        async () => {
+            if (appState.party) {
+                await leaveParty(true);
+            }
+
+            setMode("ai");
+            resetLocalGame();
+
+            showToast(
+                "New AI game ready.",
+                "success"
+            );
+        }
+    );
+
+
+    elements.createPartyButton?.addEventListener(
+        "click",
+        createParty
+    );
+
+
+    elements.joinPartyButton?.addEventListener(
+        "click",
+        () =>
+            joinParty(
+                elements.partyCodeInput?.value
+            )
+    );
+
+
+    elements.leavePartyButton?.addEventListener(
+        "click",
+        () => leaveParty(false)
+    );
+
+
+    elements.copyInviteButton?.addEventListener(
+        "click",
+        copyInviteLink
+    );
+
+
+    elements.flipBoardButton?.addEventListener(
+        "click",
+        () => {
+            appState.orientation =
+                appState.orientation === "w"
+                    ? "b"
+                    : "w";
+
+            renderBoard();
+        }
+    );
+
+
+    elements.partyCodeInput?.addEventListener(
+        "input",
+        event => {
+            event.target.value =
+                event.target.value
+                    .toUpperCase()
+                    .replace(
+                        /[^A-Z0-9]/g,
+                        ""
+                    );
+        }
+    );
+
+
+    elements.partyCodeInput?.addEventListener(
+        "keydown",
+        event => {
+            if (event.key !== "Enter") {
+                return;
+            }
+
+            event.preventDefault();
+
+            joinParty(
+                elements.partyCodeInput.value
+            );
+        }
+    );
+
+
+    elements.promotionDialog?.addEventListener(
+        "click",
+        event => {
+            if (
+                event.target ===
+                elements.promotionDialog
+            ) {
+                closePromotionDialog();
+            }
+        }
+    );
+
+
+    window.addEventListener(
+        "beforeunload",
+        () => {
+            stopAiMoveTimer();
+            stopAiClock();
+            closePartyStream();
+        }
+    );
 }
 
 
 /* =========================================================
-   INITIALIZE
+   INIT
 ========================================================= */
 
-
-function initialize() {
-
+async function init() {
     bindEvents();
 
+    const savedName =
+        localStorage.getItem(
+            STORAGE_KEYS.name
+        );
 
-    state.engine =
-        new ChessEngine();
+    if (savedName) {
+        appState.playerName =
+            savedName;
 
+        if (elements.playerNameInput) {
+            elements.playerNameInput.value =
+                savedName;
+        }
+    }
 
-    state.orientation =
-        "w";
+    const params =
+        new URLSearchParams(
+            window.location.search
+        );
 
+    const partyCode =
+        params.get("party");
 
-    state.gameStarted =
-        false;
+    if (partyCode) {
+        setMode("party");
 
+        if (elements.partyCodeInput) {
+            elements.partyCodeInput.value =
+                partyCode.toUpperCase();
+        }
 
-    resetClockFromSelect(
-        $("aiClockSelect")
-            ?.value ||
-        "10+0"
-    );
+        await joinParty(partyCode);
+        return;
+    }
 
-
-    setupAiPlayers();
-
-
-    updateGameUI();
-
-
-    startClockTimer();
-
-
-    loadPartyFromUrl();
+    setMode("ai");
+    resetLocalGame();
 }
 
 
-initialize();
+/* =========================================================
+   START
+========================================================= */
+
+init();
+
