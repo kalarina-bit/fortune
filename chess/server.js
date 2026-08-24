@@ -36,9 +36,11 @@ const PORT =
 const app =
     express();
 
+
 app.disable(
     "x-powered-by"
 );
+
 
 app.use(
     express.json({
@@ -57,6 +59,7 @@ app.use(
     )
 );
 
+
 app.use(
     "/shared",
     express.static(
@@ -66,6 +69,11 @@ app.use(
         }
     )
 );
+
+
+/* =========================================================
+   CONFIG
+========================================================= */
 
 
 const MAX_SPECTATORS = 20;
@@ -149,6 +157,11 @@ const parties =
     new Map();
 
 
+/* =========================================================
+   HELPERS
+========================================================= */
+
+
 function safeName(name) {
 
     const value =
@@ -225,10 +238,11 @@ function createPartyCode() {
 
 function getParty(code) {
 
+    const normalized =
+        normalizeCode(code);
+
     const party =
-        parties.get(
-            normalizeCode(code)
-        );
+        parties.get(normalized);
 
     if (!party) {
         throw new Error(
@@ -245,12 +259,16 @@ function getParticipant(
     clientId
 ) {
 
+    if (!clientId) {
+        return null;
+    }
+
     return (
-        clientId &&
         party.participants.get(
-            clientId
-        )
-    ) || null;
+            String(clientId).trim()
+        ) ||
+        null
+    );
 }
 
 
@@ -309,6 +327,11 @@ function countSpectators(party) {
 
     return count;
 }
+
+
+/* =========================================================
+   CLOCKS
+========================================================= */
 
 
 function createClocks(
@@ -393,6 +416,9 @@ function updateClock(party) {
         party.clocks[key] <= 0
     ) {
 
+        party.clocks[key] =
+            0;
+
         party.gameOverReason =
             "timeout";
 
@@ -407,9 +433,7 @@ function updateClock(party) {
 }
 
 
-function startClock(
-    party
-) {
+function startClock(party) {
 
     if (
         !party.timeControl.initial
@@ -417,15 +441,27 @@ function startClock(
         return;
     }
 
-    if (
-        !getPlayer(
+    const white =
+        getPlayer(
             party,
             "white"
-        ) ||
-        !getPlayer(
+        );
+
+    const black =
+        getPlayer(
             party,
             "black"
-        )
+        );
+
+    if (
+        !white ||
+        !black
+    ) {
+        return;
+    }
+
+    if (
+        party.gameOverReason
     ) {
         return;
     }
@@ -481,17 +517,18 @@ function applyMoveClock(
 }
 
 
-function getEngineStatus(
-    party
-) {
+/* =========================================================
+   GAME
+========================================================= */
+
+
+function getEngineStatus(party) {
 
     return party.engine.getStatus();
 }
 
 
-function updateGameResult(
-    party
-) {
+function updateGameResult(party) {
 
     if (
         party.gameOverReason
@@ -533,14 +570,48 @@ function updateGameResult(
 }
 
 
+function resetPartyGame(party) {
+
+    party.engine =
+        new ChessEngine();
+
+    party.clocks =
+        createClocks(
+            party.timeControl
+        );
+
+    party.gameOverReason =
+        null;
+
+    party.winner =
+        null;
+
+    startClock(
+        party
+    );
+}
+
+
+/* =========================================================
+   SERIALIZATION
+========================================================= */
+
+
 function serializeParticipant(
     participant
 ) {
 
     return {
-        id: participant.id,
-        name: participant.name,
-        role: participant.role,
+
+        id:
+            participant.id,
+
+        name:
+            participant.name,
+
+        role:
+            participant.role,
+
         connected:
             participant.connected
     };
@@ -607,6 +678,9 @@ function serializeParty(
         code:
             party.code,
 
+        ownerId:
+            party.ownerId,
+
         game:
             party.engine.getSnapshot(),
 
@@ -624,6 +698,7 @@ function serializeParty(
             party.timeControl,
 
         clocks: {
+
             white:
                 party.clocks.white,
 
@@ -657,6 +732,11 @@ function serializeParty(
 }
 
 
+/* =========================================================
+   SSE
+========================================================= */
+
+
 function sendSSE(
     response,
     event,
@@ -675,9 +755,7 @@ function sendSSE(
 }
 
 
-function broadcastParty(
-    party
-) {
+function broadcastParty(party) {
 
     for (
         const client
@@ -694,6 +772,11 @@ function broadcastParty(
         );
     }
 }
+
+
+/* =========================================================
+   CREATE PARTY
+========================================================= */
 
 
 app.post(
@@ -722,6 +805,9 @@ app.post(
 
                 code,
 
+                ownerId:
+                    clientId,
+
                 engine:
                     new ChessEngine(),
 
@@ -745,22 +831,33 @@ app.post(
                     null
             };
 
+
             party.participants.set(
                 clientId,
                 {
-                    id: clientId,
+
+                    id:
+                        clientId,
+
                     name,
-                    role: "white",
-                    connected: true
+
+                    role:
+                        "white",
+
+                    connected:
+                        true
                 }
             );
+
 
             parties.set(
                 code,
                 party
             );
 
+
             res.json({
+
                 ok: true,
 
                 party:
@@ -773,13 +870,21 @@ app.post(
         } catch (error) {
 
             res.status(400).json({
+
                 ok: false,
+
                 error:
-                    error.message
+                    error.message ||
+                    "Ошибка создания комнаты."
             });
         }
     }
 );
+
+
+/* =========================================================
+   JOIN PARTY
+========================================================= */
 
 
 app.post(
@@ -801,16 +906,23 @@ app.post(
             const party =
                 getParty(code);
 
+
             let clientId =
                 String(
                     req.body?.clientId || ""
                 ).trim();
+
 
             let participant =
                 getParticipant(
                     party,
                     clientId
                 );
+
+
+            /*
+             * Existing participant reconnects.
+             */
 
             if (participant) {
 
@@ -827,6 +939,7 @@ app.post(
 
                 let role =
                     "spectator";
+
 
                 if (
                     !getPlayer(
@@ -855,18 +968,28 @@ app.post(
                 ) {
 
                     return res.status(403).json({
+
                         ok: false,
+
                         error:
                             "Достигнут лимит зрителей."
                     });
                 }
 
+
                 participant = {
-                    id: clientId,
+
+                    id:
+                        clientId,
+
                     name,
+
                     role,
-                    connected: true
+
+                    connected:
+                        true
                 };
+
 
                 party.participants.set(
                     clientId,
@@ -874,15 +997,24 @@ app.post(
                 );
             }
 
+
+            /*
+             * Start clock only when
+             * both players exist.
+             */
+
             startClock(
                 party
             );
+
 
             broadcastParty(
                 party
             );
 
+
             res.json({
+
                 ok: true,
 
                 party:
@@ -895,13 +1027,21 @@ app.post(
         } catch (error) {
 
             res.status(400).json({
+
                 ok: false,
+
                 error:
-                    error.message
+                    error.message ||
+                    "Ошибка входа в комнату."
             });
         }
     }
 );
+
+
+/* =========================================================
+   MAKE MOVE
+========================================================= */
 
 
 app.post(
@@ -911,17 +1051,25 @@ app.post(
         try {
 
             const {
+
                 partyCode,
+
                 clientId,
+
                 from,
+
                 to,
+
                 promotion
+
             } = req.body || {};
+
 
             const party =
                 getParty(
                     partyCode
                 );
+
 
             const participant =
                 getParticipant(
@@ -929,14 +1077,18 @@ app.post(
                     clientId
                 );
 
+
             if (!participant) {
 
                 return res.status(403).json({
+
                     ok: false,
+
                     error:
                         "Игрок не найден."
                 });
             }
+
 
             if (
                 participant.role !== "white" &&
@@ -944,18 +1096,23 @@ app.post(
             ) {
 
                 return res.status(403).json({
+
                     ok: false,
+
                     error:
                         "Зритель не может делать ходы."
                 });
             }
+
 
             if (
                 party.gameOverReason
             ) {
 
                 return res.status(400).json({
+
                     ok: false,
+
                     error:
                         "Игра уже закончена.",
 
@@ -967,32 +1124,44 @@ app.post(
                 });
             }
 
+
             const color =
                 roleColor(
                     participant.role
                 );
+
 
             if (
                 party.engine.state.turn !== color
             ) {
 
                 return res.status(400).json({
+
                     ok: false,
+
                     error:
                         "Сейчас не ваш ход."
                 });
             }
 
+
+            /*
+             * Authoritative server clock.
+             */
+
             updateClock(
                 party
             );
+
 
             if (
                 party.gameOverReason
             ) {
 
                 return res.status(400).json({
+
                     ok: false,
+
                     error:
                         "Время закончилось.",
 
@@ -1004,37 +1173,49 @@ app.post(
                 });
             }
 
+
             const result =
                 party.engine.makeMove({
+
                     from,
+
                     to,
+
                     promotion:
                         promotion || null
                 });
 
+
             if (!result.ok) {
 
                 return res.status(400).json({
+
                     ok: false,
+
                     error:
                         result.error
                 });
             }
+
 
             applyMoveClock(
                 party,
                 color
             );
 
+
             updateGameResult(
                 party
             );
+
 
             broadcastParty(
                 party
             );
 
+
             res.json({
+
                 ok: true,
 
                 party:
@@ -1047,13 +1228,114 @@ app.post(
         } catch (error) {
 
             res.status(400).json({
+
                 ok: false,
+
                 error:
-                    error.message
+                    error.message ||
+                    "Ошибка выполнения хода."
             });
         }
     }
 );
+
+
+/* =========================================================
+   NEW PARTY GAME
+========================================================= */
+
+
+app.post(
+    "/api/party/new-game",
+    (req, res) => {
+
+        try {
+
+            const party =
+                getParty(
+                    req.body?.partyCode
+                );
+
+
+            const clientId =
+                String(
+                    req.body?.clientId || ""
+                ).trim();
+
+
+            const participant =
+                getParticipant(
+                    party,
+                    clientId
+                );
+
+
+            if (!participant) {
+
+                return res.status(403).json({
+
+                    ok: false,
+
+                    error:
+                        "Игрок не найден."
+                });
+            }
+
+
+            if (
+                clientId !==
+                party.ownerId
+            ) {
+
+                return res.status(403).json({
+
+                    ok: false,
+
+                    error:
+                        "Только владелец комнаты может начать новую игру."
+                });
+            }
+
+
+            resetPartyGame(
+                party
+            );
+
+
+            broadcastParty(
+                party
+            );
+
+
+            res.json({
+
+                ok: true,
+
+                party:
+                    serializeParty(
+                        party,
+                        clientId
+                    )
+            });
+
+        } catch (error) {
+
+            res.status(400).json({
+
+                ok: false,
+
+                error:
+                    error.message ||
+                    "Не удалось начать новую игру."
+            });
+        }
+    }
+);
+
+
+/* =========================================================
+   PARTY EVENTS / SSE
+========================================================= */
 
 
 app.get(
@@ -1067,13 +1349,16 @@ app.get(
                     req.query?.partyCode
                 );
 
+
             const clientId =
                 String(
                     req.query?.clientId || ""
                 ).trim();
 
+
             const party =
                 getParty(code);
+
 
             const participant =
                 getParticipant(
@@ -1081,9 +1366,14 @@ app.get(
                     clientId
                 );
 
+
             if (!participant) {
-                return res.status(403).end();
+
+                return res
+                    .status(403)
+                    .end();
             }
+
 
             res.setHeader(
                 "Content-Type",
@@ -1105,24 +1395,33 @@ app.get(
                 "no"
             );
 
+
             if (
                 typeof res.flushHeaders ===
                 "function"
             ) {
+
                 res.flushHeaders();
             }
 
+
             const client = {
-                id: clientId,
+
+                id:
+                    clientId,
+
                 res
             };
+
 
             party.sseClients.add(
                 client
             );
 
+
             participant.connected =
                 true;
+
 
             sendSSE(
                 res,
@@ -1133,15 +1432,19 @@ app.get(
                 )
             );
 
+
             const heartbeat =
                 setInterval(
                     () => {
 
                         try {
+
                             res.write(
                                 ": ping\n\n"
                             );
+
                         } catch {
+
                             clearInterval(
                                 heartbeat
                             );
@@ -1151,6 +1454,7 @@ app.get(
                     15000
                 );
 
+
             req.on(
                 "close",
                 () => {
@@ -1159,12 +1463,25 @@ app.get(
                         heartbeat
                     );
 
+
                     party.sseClients.delete(
                         client
                     );
 
-                    participant.connected =
-                        false;
+
+                    const current =
+                        getParticipant(
+                            party,
+                            clientId
+                        );
+
+
+                    if (current) {
+
+                        current.connected =
+                            false;
+                    }
+
 
                     broadcastParty(
                         party
@@ -1174,10 +1491,17 @@ app.get(
 
         } catch {
 
-            res.status(404).end();
+            res
+                .status(404)
+                .end();
         }
     }
 );
+
+
+/* =========================================================
+   LEAVE PARTY
+========================================================= */
 
 
 app.post(
@@ -1191,10 +1515,12 @@ app.post(
                     req.body?.partyCode
                 );
 
+
             const clientId =
                 String(
                     req.body?.clientId || ""
                 ).trim();
+
 
             const participant =
                 getParticipant(
@@ -1202,11 +1528,18 @@ app.post(
                     clientId
                 );
 
+
             if (!participant) {
+
                 return res.json({
                     ok: true
                 });
             }
+
+
+            /*
+             * Spectators are completely removed.
+             */
 
             if (
                 participant.role ===
@@ -1219,28 +1552,44 @@ app.post(
 
             } else {
 
+                /*
+                 * Players stay in the room
+                 * so they can reconnect.
+                 */
+
                 participant.connected =
                     false;
             }
+
 
             broadcastParty(
                 party
             );
 
+
             res.json({
+
                 ok: true
             });
 
         } catch (error) {
 
             res.status(400).json({
+
                 ok: false,
+
                 error:
-                    error.message
+                    error.message ||
+                    "Ошибка выхода."
             });
         }
     }
 );
+
+
+/* =========================================================
+   CLOCK BROADCAST
+========================================================= */
 
 
 setInterval(
@@ -1259,15 +1608,18 @@ setInterval(
                 continue;
             }
 
+
             const beforeWhite =
                 party.clocks.white;
 
             const beforeBlack =
                 party.clocks.black;
 
+
             updateClock(
                 party
             );
+
 
             if (
                 beforeWhite !==
@@ -1287,9 +1639,24 @@ setInterval(
 );
 
 
-app.get(
-    "*",
-    (req, res) => {
+/* =========================================================
+   FRONTEND FALLBACK
+========================================================= */
+
+/*
+ * Не используем app.get("*"),
+ * чтобы не зависеть от версии Express/path-to-regexp.
+ */
+
+app.use(
+    (req, res, next) => {
+
+        if (
+            req.method !== "GET"
+        ) {
+
+            return next();
+        }
 
         res.sendFile(
             path.join(
@@ -1299,6 +1666,11 @@ app.get(
         );
     }
 );
+
+
+/* =========================================================
+   SERVER
+========================================================= */
 
 
 app.listen(
