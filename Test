@@ -1,14 +1,12 @@
 <!-- =========================================================
    Gitea extra_head.tmpl
-   Base theme: lucas-labs/gitea-lugit-theme (catppuccin palette,
-   github-style components) — reconstructed as inline CSS.
-   Plus Gitea branding / system element hiding.
+   Base: lucas-labs/gitea-lugit-theme (catppuccin palette,
+   github-style components) + minimal glass layer + branding hide
    ---------------------------------------------------------
-   Light palette  -> default + html.theme-gitea-light / theme-lugit-light
-   Dark  palette  -> html.theme-gitea-dark / theme-arc-green / theme-lugit-dark
+   Light palette -> default / html.theme-gitea-light / theme-lugit-light
+   Dark  palette -> html.theme-gitea-dark / theme-arc-green / theme-lugit-dark
    ========================================================= -->
 <style>
-/* ===================== BASE (shared) ===================== */
 :root {
   --fonts-proportional: -apple-system, "Segoe UI", system-ui, "SF Pro Text", Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
   --fonts-monospace: ui-monospace, SFMono-Regular, "Source Code Pro", "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace, var(--fonts-emoji);
@@ -18,7 +16,7 @@
   --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 18 18" width="16" height="16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>');
   --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
   --octicon-chevron-right: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path d="M6.22 3.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L9.94 8 6.22 4.28a.75.75 0 0 1 0-1.06Z"></path></svg>');
-  --border-radius: 8px; --border-radius-medium: 16px; --border-radius-full: calc(infinity * 1px);
+  --border-radius: 10px; --border-radius-medium: 16px; --border-radius-full: calc(infinity * 1px);
   --opacity-disabled: 0.55; --height-loading: 16rem; --min-height-textarea: 132px; --checkbox-size: 16px;
   --page-spacing: 24px; --page-margin-x: 32px; --tab-size: 4;
 }
@@ -505,11 +503,10 @@
   --color-highlight-bg: #271c03;
 }
 
-/* ===================== INLINE THEME RULES ===================== */
 #commits-table { --color-light: transparent !important; }
 #navbar #navbar-logo img { height: 20px !important; width: 56px !important; }
 .markup code { border-radius: 6px !important; }
-.markup p { line-height: 1.5 !important; }
+.markup p { line-height: 1.6 !important; }
 ::selection { background-color: var(--color-primary-alpha-60); color: var(--color-primary-contrast); }
 /* dark-only emoji invert */
 :is(html.theme-gitea-dark, html.theme-arc-green, html.theme-lugit-dark) .emoji[aria-label="check mark"]{ filter: invert(100%) hue-rotate(180deg); }
@@ -533,7 +530,6 @@
 :is(html.theme-gitea-dark, html.theme-arc-green, html.theme-lugit-dark) .emoji[aria-label="musical note"]{ filter: invert(100%) hue-rotate(180deg); }
 :is(html.theme-gitea-dark, html.theme-arc-green, html.theme-lugit-dark) .emoji[aria-label="musical notes"]{ filter: invert(100%) hue-rotate(180deg); }
 
-/* ===================== COMPONENTS ===================== */
 
 /* ---------- segment ---------- */
 .ui.segment { margin: 16px 0; padding: 16px; border-radius: var(--border-radius); }
@@ -604,7 +600,7 @@ img.ui.avatar:not(.org-avatar), .ui.avatar img:not(.org-avatar), .ui.avatar svg:
 /* ---------- forms: input ---------- */
 input, textarea, .ui.input > input, .ui.selection.dropdown { border-color: var(--color-input-border); color: var(--color-input-text); border-radius: var(--border-radius); line-height: 20px; padding: calc(6px - 1px) 12px; }
 .ui.form input:not([type]), .ui.form select, .ui.form textarea, .ui.form input[type=date], .ui.form input[type=datetime-local], .ui.form input[type=email], .ui.form input[type=file], .ui.form input[type=number], .ui.form input[type=password], .ui.form input[type=search], .ui.form input[type=tel], .ui.form input[type=text], .ui.form input[type=time], .ui.form input[type=url] { border-color: var(--color-input-border); color: var(--color-input-text); border-radius: var(--border-radius); line-height: 20px; padding: calc(6px - 1px) 12px; }
-input:hover, textarea:hover, .ui.input > input:hover, .ui.selection.dropdown:hover { border-color: var(--color-input-border); color: var(--color-input-text); }
+input:hover, textarea:hover, .ui.input > input:hover, .ui.selection.dropdown:hover { border-color: var(--color-input-border-hover); color: var(--color-input-text); }
 .ui.form .field > label { margin: 0 0 6px; font-size: 1rem; font-weight: 600; }
 .ui.form textarea, .ui.form input:not([type]), .ui.form input[type=date], .ui.form input[type=datetime-local], .ui.form input[type=email], .ui.form input[type=number], .ui.form input[type=password], .ui.form input[type=search], .ui.form input[type=tel], .ui.form input[type=time], .ui.form input[type=text], .ui.form input[type=file], .ui.form input[type=url] { min-height: 2.71428571em; }
 .ui.selection.dropdown { min-height: 2.71428571em; }
@@ -657,7 +653,8 @@ input.active, textarea.active, .ui.input > input.active, .ui.selection.dropdown.
 .ui.buttons .button:first-child { border-top-left-radius: var(--border-radius); border-bottom-left-radius: var(--border-radius); border-top-right-radius: 0; border-bottom-right-radius: 0; }
 .ui.buttons .button:last-child { border-top-right-radius: var(--border-radius); border-bottom-right-radius: var(--border-radius); border-top-left-radius: 0; border-bottom-left-radius: 0; }
 .ui.buttons .button { border-right: none; flex: 1 0 auto; border-radius: 0; margin: 0; }
-.ui.button { border-radius: var(--border-radius); transition: color .1s ease, background-color .1s ease, border-color .1s ease; padding: calc(6px - 1px) 16px; font-size: 1rem; line-height: 20px; }
+.ui.button { border-radius: var(--border-radius); transition: color .15s ease, background-color .15s ease, border-color .15s ease, box-shadow .15s ease; padding: calc(6px - 1px) 16px; font-size: 1rem; line-height: 20px; }
+.ui.button:hover { box-shadow: 0 1px 3px rgba(var(--color-shadow-rgb), .12); }
 .ui.button.tiny { font-size: .857rem; line-height: .857rem; }
 .ui.button.basic { border-radius: var(--border-radius); }
 .ui.button.red, .ui.button.red.basic { border-color: var(--color-secondary); background: var(--color-button); color: var(--color-red); }
@@ -956,13 +953,95 @@ input:focus, textarea:focus, .ui.input > input:focus, .ui.form input:not([type])
 :is(html.theme-gitea-dark, html.theme-arc-green, html.theme-lugit-dark) .monaco-editor .mtk20{ color: #ff69b4 !important; }
 :is(html.theme-gitea-dark, html.theme-arc-green, html.theme-lugit-dark) .monaco-editor .mtk22{ color: #ff69b4 !important; }
 
+
 /* =========================================================
-   GITEA BRANDING / SYSTEM ELEMENTS — HIDE (from original)
+   MINIMAL GLASS LAYER — light, comfortable, translucent
+   ========================================================= */
+html, body {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(98,150,226,.06), transparent 38%),
+    radial-gradient(circle at 88% 92%, rgba(188,192,204,.08), transparent 42%),
+    var(--color-body) !important;
+  background-attachment: fixed !important;
+}
+:is(html.theme-gitea-dark, html.theme-arc-green, html.theme-lugit-dark) { background:
+  radial-gradient(circle at 12% 8%, rgba(166,198,247,.035), transparent 38%),
+  radial-gradient(circle at 88% 92%, rgba(255,255,255,.02), transparent 42%),
+  var(--color-body) !important; }
+
+/* soft translucent surfaces (only primary content cards) */
+.ui.attached.segment,
+.ui.segment:not(.basic):not(.header):not(.tabular),
+.repository .ui.attached.segment,
+.repository.file.list,
+.ui.card,
+.ui.cards > .card,
+.markup {
+  background: color-mix(in srgb, var(--color-box-body) 72%, transparent) !important;
+  backdrop-filter: blur(10px) saturate(1.15);
+  -webkit-backdrop-filter: blur(10px) saturate(1.15);
+  border: 1px solid color-mix(in srgb, var(--color-light-border) 55%, transparent) !important;
+  box-shadow: 0 1px 2px rgba(var(--color-shadow-rgb), .04), 0 4px 16px rgba(var(--color-shadow-rgb), .06) !important;
+}
+.ui.top.attached.header,
+.ui.attached.header {
+  background: color-mix(in srgb, var(--color-box-header) 72%, transparent) !important;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-light-border) 45%, transparent) !important;
+}
+
+/* navbar — frosted */
+#navbar, .ui.menu:not(.tabular):not(.secondary):not(.vertical) {
+  background: color-mix(in srgb, var(--color-nav-bg) 70%, transparent) !important;
+  backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-light-border) 40%, transparent) !important;
+}
+/* dropdown menus — crisp frosted popover */
+.ui.dropdown > .menu, .ui.selection > .menu {
+  background: color-mix(in srgb, var(--color-menu) 86%, transparent) !important;
+  backdrop-filter: blur(16px) saturate(1.25); -webkit-backdrop-filter: blur(16px) saturate(1.25);
+  border: 1px solid color-mix(in srgb, var(--color-light-border) 50%, transparent) !important;
+  box-shadow: 0 8px 28px rgba(var(--color-shadow-rgb), .18) !important;
+}
+/* footer — quiet, minimal */
+footer {
+  background: color-mix(in srgb, var(--color-footer) 60%, transparent) !important;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border-top: 1px solid color-mix(in srgb, var(--color-light-border) 35%, transparent) !important;
+}
+/* inputs — barely tinted, clean */
+input, textarea, .ui.input > input, .ui.selection.dropdown {
+  background: color-mix(in srgb, var(--color-input-background) 60%, transparent) !important;
+}
+/* reduce heavy borders across the board for a cleaner look */
+.ui.segment, .ui.attached.segment, .ui.attached.header { border-width: 1px !important; }
+/* smoother, lighter focus ring */
+*:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+
+/* =========================================================
+   GITEA BRANDING / SYSTEM ELEMENTS — HIDE
+   Removes: Help, Explore Organizations, Powered by Gitea,
+   Version, Page, Template, API, Licenses links
    ========================================================= */
 a.item[href*="docs.gitea.com"], a.item[href*="/help"], a.item[href*="/explore/organizations"] { display: none !important; }
-footer .left, footer .ui.left, footer .footer-left, footer .power-by, footer .version, footer .page, footer .template, footer .ui.left.links, footer .ui.left.menu, footer .ui.container > .left { display: none !important; }
-footer a[href*="gitea.com"], footer a[href*="gitea.io"], footer a[href*="gitea.dev"], footer a[href*="github.com/go-gitea"], footer a[href*="/api/"], footer a[href*="/licenses"], footer a[href*="licenses"] { display: none !important; }
-footer .ui.right > span, footer .ui.right.links > span, footer .ui.right > a[href*="/api/"], footer .ui.right > a[href*="/licenses"] { display: none !important; }
+
+/* footer left column: Powered by / Version / Page / Template */
+footer .left, footer .ui.left, footer .footer-left, footer .power-by, footer .powered-by,
+footer .version, footer .page, footer .template,
+footer .ui.left.links, footer .ui.left.menu, footer .ui.container > .left { display: none !important; }
+
+/* footer links to gitea / github / api / licenses */
+footer a[href*="gitea.com"], footer a[href*="gitea.io"], footer a[href*="gitea.dev"],
+footer a[href*="github.com/go-gitea"], footer a[href*="/api/"],
+footer a[href*="/licenses"], footer a[href*="licenses"] { display: none !important; }
+
+/* footer right column: residual Version / Page / Template text + API / Licenses */
+footer .ui.right > span, footer .ui.right.links > span,
+footer .ui.right > a[href*="/api/"], footer .ui.right > a[href*="/licenses"],
 footer .ui.right .version, footer .ui.right .page, footer .ui.right .template, footer .ui.right .power-by { display: none !important; }
-.page-content.home .ui.stackable.grid .eight.wide.column, .page-content.home .features, .page-content.home .hero + .ui.stackable.grid { display: none !important; }
+
+/* default home blocks */
+.page-content.home .ui.stackable.grid .eight.wide.column,
+.page-content.home .features,
+.page-content.home .hero + .ui.stackable.grid { display: none !important; }
 </style>
